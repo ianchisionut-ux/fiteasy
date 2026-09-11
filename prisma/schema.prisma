@@ -17,6 +17,7 @@ model Instructor {
   name      String
   createdAt DateTime @default(now())
   clients   Client[]
+  templates Template[]
 }
 
 model Client {
@@ -32,6 +33,16 @@ model Client {
   sessions        ClientSession[]
   entries         Entry[]
   messages        Message[]
+  measurements    Measurement[]
+  habitLogs       HabitLog[]
+  checkIns        CheckIn[]
+  intake          Intake?
+
+  // Ținte zilnice de nutriție (grame / kcal), setate de instructor.
+  dailyProteinTarget  Int?
+  dailyCarbsTarget    Int?
+  dailyFatTarget      Int?
+  dailyCaloriesTarget Int?
 
   @@index([instructorId])
 }
@@ -56,12 +67,90 @@ model Entry {
   title        String
   details      String
   muscleGroup  String?  // doar pentru WORKOUT — Piept, Spate, Picioare etc.
+  protein      Int?     // doar pentru NUTRITION — grame
+  carbs        Int?     // doar pentru NUTRITION — grame
+  fat          Int?     // doar pentru NUTRITION — grame
+  calories     Int?     // doar pentru NUTRITION — kcal
   completed    Boolean  @default(false)
-  feedback     String   @default("")
+  feedback     String   @default("")   // observația clientului
+  coachNote    String   @default("")   // răspunsul/corectura instructorului — vizibil clientului pe acest exercițiu/masă
   version      Int      @default(1)
   updatedAt    DateTime @updatedAt
 
   @@index([clientId, date])
+}
+
+// Formular de anamneză, completat o dată de client la început (editabil ulterior).
+model Intake {
+  id              String   @id @default(cuid())
+  clientId        String   @unique
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  medicalHistory  String   @default("")
+  injuries        String   @default("")
+  experienceLevel String   @default("") // ÎNCEPĂTOR / INTERMEDIAR / AVANSAT
+  lifestyle       String   @default("")
+  foodPreferences String   @default("")
+  goals           String   @default("")
+  updatedAt       DateTime @updatedAt
+}
+
+// Măsurători corporale în timp — fără fotografii, doar numere (progresul vizual
+// se discută la apelul video).
+model Measurement {
+  id       String   @id @default(cuid())
+  clientId String
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  date     String   // YYYY-MM-DD
+  weight   Float?   // kg
+  waist    Float?   // cm
+  hips     Float?   // cm
+  arms     Float?   // cm
+  thighs   Float?   // cm
+  notes    String   @default("")
+
+  @@index([clientId, date])
+}
+
+// Obiceiuri zilnice bifabile de client — apă, pași, somn.
+model HabitLog {
+  id         String @id @default(cuid())
+  clientId   String
+  client     Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  date       String // YYYY-MM-DD
+  waterMl    Int?
+  steps      Int?
+  sleepHours Float?
+
+  @@unique([clientId, date])
+}
+
+// Check-in săptămânal — completat de client, de regulă vineri/sâmbătă.
+model CheckIn {
+  id                  String   @id @default(cuid())
+  clientId            String
+  client              Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  weekOf              String   // YYYY-MM-DD — luni săptămânii respective
+  avgWeight           Float?
+  energyLevel         Int?     // 1-5
+  dietAdherencePercent Int?    // 0-100
+  difficulties        String   @default("")
+  createdAt           DateTime @default(now())
+
+  @@unique([clientId, weekOf])
+}
+
+// Șabloane proprii salvate de instructor (planuri de antrenament sau zile de
+// nutriție reutilizabile), pe lângă exemplele predefinite din lib/templates.ts.
+model Template {
+  id           String     @id @default(cuid())
+  instructorId String
+  instructor   Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  kind         String     // WORKOUT sau NUTRITION
+  name         String
+  data         Json       // structura WorkoutProgram sau NutritionDay din lib/templates.ts
+  createdAt    DateTime   @default(now())
+
+  @@index([instructorId, kind])
 }
 
 model Message {

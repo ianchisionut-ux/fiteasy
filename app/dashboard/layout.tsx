@@ -1,6 +1,15 @@
 import Image from 'next/image'
 import { auth, signOut } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import PwaInstall from '@/components/pwa-install'
+import type { Metadata, Viewport } from 'next'
+
+export const metadata: Metadata = {
+  title: 'fiteasy — Instructor',
+  manifest: '/api/manifest/instructor',
+  appleWebApp: { capable: true, title: 'fiteasy Instructor', statusBarStyle: 'default' },
+}
+export const viewport: Viewport = { themeColor: '#0F6E56' }
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -14,6 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <button className="text-sm text-gray-500 hover:text-gray-900">Deconectare</button>
         </form>
       </header>
+      <PwaInstall label="fiteasy Instructor" />
       <main className="max-w-lg mx-auto px-4 py-6">{children}</main>
     </div>
   )
