@@ -25,10 +25,13 @@ export async function POST(req: Request) {
     const password = await bcrypt.hash(parsed.data.password, 10)
     await prisma.instructor.create({ data: { email: parsed.data.email.toLowerCase().trim(), password, name: parsed.data.name } })
     return NextResponse.json({ ok: true })
-  } catch (e) {
+  } catch (e: any) {
     // Temporar: trimitem mesajul exact în răspuns ca să putem diagnostica.
     // De scos după ce merge — nu trebuie să rămână în producție.
-    const message = e instanceof Error ? `${e.name}: ${e.message}` : String(e)
+    const message = e instanceof Error ? `${e.name}: ${e.message}`
+      : e?.message ? `${e?.type ?? 'ErrorEvent'}: ${e.message}`
+      : e?.error ? String(e.error)
+      : JSON.stringify(e, Object.getOwnPropertyNames(e ?? {}))
     return NextResponse.json({ error: 'A apărut o eroare la crearea contului.', debug: message }, { status: 500 })
   }
 }
