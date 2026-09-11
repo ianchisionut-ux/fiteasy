@@ -1,0 +1,76 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Un cont = un instructor. Simplu, fără conceptul de "business" din bookeasy —
+// dacă mai târziu apar mai mulți instructori pe un cont, se adaugă atunci.
+model Instructor {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  clients   Client[]
+}
+
+model Client {
+  id              String    @id @default(cuid())
+  instructorId    String
+  instructor      Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  name            String
+  phone           String?
+  active          Boolean   @default(true)
+  inviteHash      String?   @unique
+  inviteExpiresAt DateTime?
+  createdAt       DateTime  @default(now())
+  sessions        ClientSession[]
+  entries         Entry[]
+  messages        Message[]
+
+  @@index([instructorId])
+}
+
+model ClientSession {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+
+  @@index([clientId])
+}
+
+model Entry {
+  id           String   @id @default(cuid())
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  kind         String   // NUTRITION sau WORKOUT — validat la intrarea în API
+  date         String   // YYYY-MM-DD
+  time         String   // HH:mm
+  title        String
+  details      String
+  muscleGroup  String?  // doar pentru WORKOUT — Piept, Spate, Picioare etc.
+  completed    Boolean  @default(false)
+  feedback     String   @default("")
+  version      Int      @default(1)
+  updatedAt    DateTime @updatedAt
+
+  @@index([clientId, date])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  sender    String   // INSTRUCTOR sau CLIENT
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([clientId, createdAt])
+}

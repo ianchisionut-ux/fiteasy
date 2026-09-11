@@ -1,0 +1,31 @@
+# dependențe
+node_modules/
+
+# build Next.js
+.next/
+out/
+build/
+
+# env — nu urca niciodată secrete în git
+.env
+.env*.local
+
+# Prisma
+prisma/generated/
+
+# logs
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Cloudflare local/build state
+.open-next/
+.wrangler/
+.dev.vars
