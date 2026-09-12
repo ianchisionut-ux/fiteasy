@@ -60,9 +60,9 @@ export default function BigCalendar({ entries, kind, onSelectSlot, onSelectEntry
         endAccessor="end"
         culture="ro"
         view={view}
-        onView={v => { setView(v); notifyRange(currentDate, v) }}
+        onView={(v: any) => { setView(v); notifyRange(currentDate, v) }}
         date={currentDate}
-        onNavigate={d => { setCurrentDate(d); notifyRange(d, view) }}
+        onNavigate={(d: Date) => { setCurrentDate(d); notifyRange(d, view) }}
         views={[Views.MONTH, Views.WEEK, Views.DAY]}
         step={30}
         timeslots={2}

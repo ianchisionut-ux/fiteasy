@@ -8,16 +8,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Un cont = un instructor. Simplu, fără conceptul de "business" din bookeasy —
-// dacă mai târziu apar mai mulți instructori pe un cont, se adaugă atunci.
+// Multi-tenant: oricine se poate înregistra și are propriul cont, izolat
+// (fiecare instructor își vede doar clienții lui — deja garantat de relații).
 model Instructor {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  createdAt DateTime @default(now())
-  clients   Client[]
-  templates Template[]
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String
+  active        Boolean  @default(true)  // dezactivat de superadmin = nu se mai poate loga
+  isSuperAdmin  Boolean  @default(false) // contul creat prin /api/setup, administrează platforma
+  createdAt     DateTime @default(now())
+  clients       Client[]
+  templates     Template[]
 }
 
 model Client {

@@ -76,3 +76,9 @@ export const applyTemplateInput = z.object({
   templateId: z.string().trim().min(1),
   startDate: calendarDate,
 }).strict()
+
+export const registerInput = z.object({
+  name: z.string().trim().min(1).max(150),
+  email: z.string().email().max(200),
+  password: z.string().min(8).max(200),
+}).strict()

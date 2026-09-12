@@ -22,20 +22,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         const instructor = await prisma.instructor.findUnique({ where: { email } })
-        if (!instructor) return null
+        if (!instructor || !instructor.active) return null
         const valid = await bcrypt.compare(credentials?.password as string, instructor.password)
         if (!valid) return null
-        return { id: instructor.id, email: instructor.email, name: instructor.name } as any
+        return { id: instructor.id, email: instructor.email, name: instructor.name, isSuperAdmin: instructor.isSuperAdmin } as any
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = (user as any).id
+      if (user) { token.id = (user as any).id; token.isSuperAdmin = (user as any).isSuperAdmin }
       return token
     },
     async session({ session, token }) {
       ;(session as any).instructorId = token.id
+      ;(session as any).isSuperAdmin = token.isSuperAdmin
       return session
     },
   },
