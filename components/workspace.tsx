@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { addDays, format, startOfWeek } from 'date-fns'
 import { Check, Circle, MessageCircle, Pencil, Trash2, Plus, Video, BookmarkPlus, Users, BarChart3, Dumbbell, Apple } from 'lucide-react'
 import BigCalendar from './big-calendar'
@@ -39,12 +40,28 @@ function QuickNav({ view, onClients, onStats, onNewClient }: { view: 'clients' |
 }
 
 export default function Workspace({ owner = false, instructorName = '' }: { owner?: boolean; instructorName?: string }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  // Starea de navigare (client selectat, tab, vedere) trăiește în URL, nu doar
+  // în React state — așa butonul Back/Forward al browserului chiar funcționează
+  // în loc să te scoată din aplicație.
+  function updateUrl(patch: Record<string, string | null>) {
+    const params = new URLSearchParams(searchParams.toString())
+    for (const [k, v] of Object.entries(patch)) { if (v === null) params.delete(k); else params.set(k, v) }
+    router.push(`${pathname}?${params.toString()}`)
+  }
+  const clientId = owner ? (searchParams.get('client') ?? '') : ''
+  const setClientId = (id: string) => updateUrl({ client: id || null })
+  const view = (searchParams.get('view') as 'clients' | 'stats') ?? 'clients'
+  const setView = (v: 'clients' | 'stats') => updateUrl({ view: v === 'clients' ? null : v })
+  const tab = searchParams.get('tab') ?? 'WORKOUT'
+  const setTab = (t: string) => updateUrl({ tab: t === 'WORKOUT' ? null : t })
+
   const [clients, setClients] = useState<ClientOption[]>([])
-  const [clientId, setClientId] = useState('')
-  const [view, setView] = useState<'clients' | 'stats'>('clients')
   const [clientName, setClientName] = useState('')
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [tab, setTab] = useState('WORKOUT')
   const [entries, setEntries] = useState<Entry[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [hasMore, setHasMore] = useState(false)
@@ -102,8 +119,7 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
   const selectedLabel = new Date(`${selectedDate}T12:00:00`).toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Bucharest' })
 
   function openClient(id: string, startTab?: string) {
-    if (startTab) setTab(startTab)
-    setClientId(id)
+    updateUrl({ client: id || null, ...(startTab ? { tab: startTab === 'WORKOUT' ? null : startTab } : {}) })
   }
 
   if (owner && !clientId) {
@@ -165,7 +181,7 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
   return (
     <div className="lg:grid lg:grid-cols-[1fr_240px] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
     <div className="space-y-4">
-      {owner && <QuickNav view={view} onClients={() => { setView('clients'); setClientId(''); setInvite('') }} onStats={() => { setView('stats'); setClientId(''); setInvite('') }} onNewClient={() => { setView('clients'); setClientId(''); setInvite(''); setNewClientOpen(true) }} />}
+      {owner && <QuickNav view={view} onClients={() => { updateUrl({ view: null, client: null }); setInvite('') }} onStats={() => { updateUrl({ view: 'stats', client: null }); setInvite('') }} onNewClient={() => { updateUrl({ view: null, client: null }); setInvite(''); setNewClientOpen(true) }} />}
       {owner && (
         <div className="flex items-center justify-between">
           <button onClick={() => { setClientId(''); setInvite('') }} className="text-sm text-gray-500 hover:text-gray-900">← Toți clienții</button>
