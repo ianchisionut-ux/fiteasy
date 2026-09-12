@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { addDays, format, startOfWeek } from 'date-fns'
 import { Check, Circle, MessageCircle, Pencil, Trash2, Plus, Video, BookmarkPlus, Users, CalendarDays } from 'lucide-react'
 import BigCalendar from './big-calendar'
+import DashboardHome from './dashboard-home'
 import { MUSCLE_GROUPS, EXERCISES } from '@/lib/exercises'
 import ProgressTab from './progress-tab'
 import TemplatePicker from './template-picker'
@@ -33,7 +34,7 @@ function QuickNav({ onClients, onCalendar, onNewClient }: { onClients: () => voi
   )
 }
 
-export default function Workspace({ owner = false }: { owner?: boolean }) {
+export default function Workspace({ owner = false, instructorName = '' }: { owner?: boolean; instructorName?: string }) {
   const [clients, setClients] = useState<ClientOption[]>([])
   const [clientId, setClientId] = useState('')
   const [clientName, setClientName] = useState('')
@@ -97,10 +98,11 @@ export default function Workspace({ owner = false }: { owner?: boolean }) {
 
   if (owner && !clientId) {
     return (
+      <QuickNav onClients={() => setClientId('')} onCalendar={() => setClientId('')} onNewClient={() => setNewClientOpen(true)} />
+      <DashboardHome instructorName={instructorName} onSelectClient={setClientId} onNewClient={() => setNewClientOpen(true)} onDemoData={() => action(async () => { await api('/api/seed-demo', 'POST'); const list = await api('/api/clients'); setClients(list.clients) })} />
       <div className="lg:grid lg:grid-cols-[320px_1fr] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
         <div className="space-y-4">
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <QuickNav onClients={() => setClientId('')} onCalendar={() => setClientId('')} onNewClient={() => setNewClientOpen(true)} />
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-semibold">Clienți</h1>
             <button className="btn-primary flex items-center gap-1.5" onClick={() => setNewClientOpen(true)}><Plus size={16} />Client nou</button>
