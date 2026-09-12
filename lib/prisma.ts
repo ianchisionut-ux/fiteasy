@@ -1,6 +1,16 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
+import { neonConfig } from '@neondatabase/serverless'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
+
+// Cloudflare Workers au WebSocket global nativ, dar Node.js (Vercel, local dev)
+// nu are — driverul Neon are nevoie de un polyfill explicit acolo, altfel
+// conexiunea eșuează silențios (apare ca "email/parolă greșite" la login,
+// fără nicio eroare clară).
+if (typeof WebSocket === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  neonConfig.webSocketConstructor = require('ws')
+}
 
 function createPrismaClient() {
   const adapter = new PrismaNeon({
