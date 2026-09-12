@@ -1,7 +1,9 @@
-import Image from 'next/image'
-import { auth, signOut } from '@/lib/auth'
+import { Suspense } from 'react'
+import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import PwaInstall from '@/components/pwa-install'
+import SidebarNav from '@/components/sidebar-nav'
+import MobileHeader from '@/components/mobile-header'
 import type { Metadata, Viewport } from 'next'
 
 export const metadata: Metadata = {
@@ -17,18 +19,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="app-bg min-h-screen">
-    <div className="app-bg-overlay">
-      <header className="border-b border-gray-100 bg-white/90 backdrop-blur-sm px-4 py-3 flex items-center justify-between">
-        <Image src="/fiteasy-logo.png" alt="fiteasy.ro" width={209} height={98} className="h-7 w-auto" priority />
-        <div className="flex items-center gap-3">
-          {(session as any).isSuperAdmin && <a href="/superadmin" className="text-sm text-gray-500 hover:text-gray-900">Admin</a>}
-          <form action={async () => { 'use server'; await signOut({ redirectTo: '/login' }) }}>
-            <button className="text-sm text-gray-500 hover:text-gray-900">Deconectare</button>
-          </form>
-        </div>
-      </header>
-      <PwaInstall label="fiteasy Instructor" />
-      <main className="max-w-6xl mx-auto px-4 py-6">{children}</main>
+    <div className="app-bg-overlay lg:flex">
+      <Suspense>
+        <SidebarNav isSuperAdmin={Boolean((session as any).isSuperAdmin)} />
+      </Suspense>
+      <div className="flex-1 min-w-0">
+        <MobileHeader />
+        <PwaInstall label="fiteasy Instructor" />
+        <main className="max-w-6xl mx-auto px-4 py-6">{children}</main>
+      </div>
     </div>
     </div>
   )

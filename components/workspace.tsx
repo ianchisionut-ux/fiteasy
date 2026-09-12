@@ -125,7 +125,9 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
   if (owner && !clientId) {
     return (
       <>
+      <div className="lg:hidden">
       <QuickNav view={view} onClients={() => setView('clients')} onStats={() => setView('stats')} onNewClient={() => setNewClientOpen(true)} />
+      </div>
 
       {view === 'stats' && (
         <DashboardHome instructorName={instructorName} onSelectClient={openClient} onNewClient={() => { setView('clients'); setNewClientOpen(true) }} onDemoData={() => action(async () => { await api('/api/seed-demo', 'POST'); const list = await api('/api/clients'); setClients(list.clients) })} />
@@ -181,7 +183,7 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
   return (
     <div className="lg:grid lg:grid-cols-[1fr_240px] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
     <div className="space-y-4">
-      {owner && <QuickNav view={view} onClients={() => { updateUrl({ view: null, client: null }); setInvite('') }} onStats={() => { updateUrl({ view: 'stats', client: null }); setInvite('') }} onNewClient={() => { updateUrl({ view: null, client: null }); setInvite(''); setNewClientOpen(true) }} />}
+      {owner && <div className="lg:hidden"><QuickNav view={view} onClients={() => { updateUrl({ view: null, client: null }); setInvite('') }} onStats={() => { updateUrl({ view: 'stats', client: null }); setInvite('') }} onNewClient={() => { updateUrl({ view: null, client: null }); setInvite(''); setNewClientOpen(true) }} /></div>}
       {owner && (
         <div className="flex items-center justify-between">
           <button onClick={() => { setClientId(''); setInvite('') }} className="text-sm text-gray-500 hover:text-gray-900">← Toți clienții</button>
