@@ -98,6 +98,7 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
 
   if (owner && !clientId) {
     return (
+      <>
       <QuickNav onClients={() => setClientId('')} onCalendar={() => setClientId('')} onNewClient={() => setNewClientOpen(true)} />
       <DashboardHome instructorName={instructorName} onSelectClient={setClientId} onNewClient={() => setNewClientOpen(true)} onDemoData={() => action(async () => { await api('/api/seed-demo', 'POST'); const list = await api('/api/clients'); setClients(list.clients) })} />
       <div className="lg:grid lg:grid-cols-[320px_1fr] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
@@ -137,6 +138,7 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
         </div>
         <MonthOverview onSelectClient={setClientId} />
       </div>
+      </>
     )
   }
 
