@@ -88,39 +88,48 @@ export default function Workspace({ owner = false }: { owner?: boolean }) {
 
   if (owner && !clientId) {
     return (
-      <div className="space-y-4">
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">Clienți</h1>
-          <button className="btn-primary flex items-center gap-1.5" onClick={() => setNewClientOpen(true)}><Plus size={16} />Client nou</button>
+      <div className="lg:grid lg:grid-cols-[320px_1fr] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
+        <div className="space-y-4">
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-semibold">Clienți</h1>
+            <button className="btn-primary flex items-center gap-1.5" onClick={() => setNewClientOpen(true)}><Plus size={16} />Client nou</button>
+          </div>
+          {newClientOpen && <form className="card p-4 space-y-3" onSubmit={e => {
+            e.preventDefault(); void action(async () => {
+              const d = await api('/api/clients', 'POST', { action: 'create', ...newClient })
+              setClients(c => [...c, d.client]); setNewClientOpen(false); setNewClient({ name: '', phone: '' })
+            })
+          }}>
+            <label className="block text-sm">Nume<input required className="field mt-1" value={newClient.name} onChange={e => setNewClient({ ...newClient, name: e.target.value })} placeholder="Andreea Popescu" /></label>
+            <label className="block text-sm">Telefon (opțional)<input className="field mt-1" value={newClient.phone} onChange={e => setNewClient({ ...newClient, phone: e.target.value })} placeholder="07xx xxx xxx" /></label>
+            <div className="flex gap-2"><button className="btn-primary" disabled={busy}>Salvează</button><button type="button" className="btn-secondary" onClick={() => setNewClientOpen(false)}>Renunță</button></div>
+          </form>}
+          <div className="card divide-y divide-gray-100">
+            {clients.length === 0 && <div className="p-4 text-sm text-gray-500 space-y-3">
+              <p>Niciun client încă. Adaugă primul client ca să începi.</p>
+              <button disabled={busy} className="btn-secondary text-xs" onClick={() => action(async () => {
+                const d = await api('/api/seed-demo', 'POST')
+                const list = await api('/api/clients'); setClients(list.clients)
+              })}>Populează cu date demo (3 clienți)</button>
+            </div>}
+            {clients.map(c => (
+              <button key={c.id} onClick={() => setClientId(c.id)} className="w-full flex items-center gap-3 p-3 text-left hover:bg-[var(--accent-soft)] transition">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0" style={{ background: 'var(--accent)' }}>
+                  {c.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{c.name}</p>{!c.active && <p className="text-xs text-amber-600">Acces inactiv</p>}</div>
+              </button>
+            ))}
+          </div>
         </div>
         <MonthOverview onSelectClient={setClientId} />
-        {newClientOpen && <form className="card p-4 space-y-3" onSubmit={e => {
-          e.preventDefault(); void action(async () => {
-            const d = await api('/api/clients', 'POST', { action: 'create', ...newClient })
-            setClients(c => [...c, d.client]); setNewClientOpen(false); setNewClient({ name: '', phone: '' })
-          })
-        }}>
-          <label className="block text-sm">Nume<input required className="field mt-1" value={newClient.name} onChange={e => setNewClient({ ...newClient, name: e.target.value })} placeholder="Andreea Popescu" /></label>
-          <label className="block text-sm">Telefon (opțional)<input className="field mt-1" value={newClient.phone} onChange={e => setNewClient({ ...newClient, phone: e.target.value })} placeholder="07xx xxx xxx" /></label>
-          <div className="flex gap-2"><button className="btn-primary" disabled={busy}>Salvează</button><button type="button" className="btn-secondary" onClick={() => setNewClientOpen(false)}>Renunță</button></div>
-        </form>}
-        <div className="card divide-y divide-gray-100">
-          {clients.length === 0 && <p className="p-4 text-sm text-gray-500">Niciun client încă. Adaugă primul client ca să începi.</p>}
-          {clients.map(c => (
-            <button key={c.id} onClick={() => setClientId(c.id)} className="w-full flex items-center gap-3 p-3 text-left hover:bg-[var(--accent-soft)] transition">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0" style={{ background: 'var(--accent)' }}>
-                {c.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{c.name}</p>{!c.active && <p className="text-xs text-amber-600">Acces inactiv</p>}</div>
-            </button>
-          ))}
-        </div>
       </div>
     )
   }
 
   return (
+    <div className="lg:grid lg:grid-cols-[1fr_240px] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
     <div className="space-y-4">
       {owner && (
         <div className="flex items-center justify-between">
@@ -177,17 +186,19 @@ export default function Workspace({ owner = false }: { owner?: boolean }) {
           const t = client ? { protein: client.dailyProteinTarget, carbs: client.dailyCarbsTarget, fat: client.dailyFatTarget, calories: client.dailyCaloriesTarget } : null
           const totals = selectedEntries.reduce((acc, e) => ({ protein: acc.protein + (e.protein ?? 0), carbs: acc.carbs + (e.carbs ?? 0), fat: acc.fat + (e.fat ?? 0), calories: acc.calories + (e.calories ?? 0) }), { protein: 0, carbs: 0, fat: 0, calories: 0 })
           if (!t || (!t.protein && !t.carbs && !t.fat && !t.calories)) return owner ? <NutritionTargetsEditor clientId={clientId} current={t} onSaved={targets => setClients(cs => cs.map(c => c.id === clientId ? { ...c, ...targets } : c))} /> : null
-          const ring = (value: number, target: number, color: string) => {
-            const pct = Math.min(100, target ? (value / target) * 100 : 0)
-            const c = 2 * Math.PI * 26
-            return (
-              <svg width="60" height="60" viewBox="0 0 64 64">
-                <circle cx="32" cy="32" r="26" fill="none" stroke="#F1F5F3" strokeWidth="6" />
-                <circle cx="32" cy="32" r="26" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c - (c * pct) / 100} transform="rotate(-90 32 32)" />
-                <text x="32" y="37" textAnchor="middle" fontSize="13" fontWeight="600" fill="#14231d">{Math.round(pct)}%</text>
-              </svg>
-            )
-          }
+
+          // Segmente proporționale cu contribuția calorică a fiecărui macro (proteine/carbo = 4 kcal/g, grăsimi = 9 kcal/g),
+          // ca la Cronometer — un singur inel, nu unul separat per macro.
+          const kcalFromMacros = totals.protein * 4 + totals.carbs * 4 + totals.fat * 9
+          const segments = [
+            { label: 'Proteine', grams: totals.protein, kcal: totals.protein * 4, color: '#22c55e' },
+            { label: 'Carbo', grams: totals.carbs, kcal: totals.carbs * 4, color: '#06b6d4' },
+            { label: 'Grăsimi', grams: totals.fat, kcal: totals.fat * 9, color: '#a855f7' },
+          ].filter(s => s.grams > 0)
+          const r = 46, c = 2 * Math.PI * r
+          let offset = 0
+          const displayKcal = totals.calories || kcalFromMacros
+
           return (
             <div className="card p-4">
               <div className="flex items-center justify-between mb-3">
@@ -195,11 +206,33 @@ export default function Workspace({ owner = false }: { owner?: boolean }) {
                 {owner && <button className="text-xs underline" style={{ color: 'var(--accent)' }} onClick={() => setEditingTargets(true)}>Editează ținte</button>}
               </div>
               {editingTargets && owner && <NutritionTargetsEditor clientId={clientId} current={t} onSaved={targets => { setClients(cs => cs.map(c => c.id === clientId ? { ...c, ...targets } : c)); setEditingTargets(false) }} />}
-              {!editingTargets && <div className="flex justify-around">
-                {t.protein != null && <div className="text-center">{ring(totals.protein, t.protein, '#0F6E56')}<p className="text-[11px] text-gray-500 mt-1">Proteine</p><p className="text-[10px] text-gray-400">{totals.protein}/{t.protein}g</p></div>}
-                {t.carbs != null && <div className="text-center">{ring(totals.carbs, t.carbs, '#3b82f6')}<p className="text-[11px] text-gray-500 mt-1">Carbo</p><p className="text-[10px] text-gray-400">{totals.carbs}/{t.carbs}g</p></div>}
-                {t.fat != null && <div className="text-center">{ring(totals.fat, t.fat, '#f59e0b')}<p className="text-[11px] text-gray-500 mt-1">Grăsimi</p><p className="text-[10px] text-gray-400">{totals.fat}/{t.fat}g</p></div>}
-              </div>}
+              {!editingTargets && (
+                <div className="flex items-center gap-6">
+                  <svg width="110" height="110" viewBox="0 0 110 110" className="flex-shrink-0">
+                    <circle cx="55" cy="55" r={r} fill="none" stroke="#F1F5F3" strokeWidth="10" />
+                    {segments.map(s => {
+                      const len = kcalFromMacros ? (s.kcal / kcalFromMacros) * c : 0
+                      const el = <circle key={s.label} cx="55" cy="55" r={r} fill="none" stroke={s.color} strokeWidth="10" strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-offset} transform="rotate(-90 55 55)" />
+                      offset += len
+                      return el
+                    })}
+                    <text x="55" y="52" textAnchor="middle" fontSize="20" fontWeight="600" fill="#14231d">{displayKcal}</text>
+                    <text x="55" y="68" textAnchor="middle" fontSize="10" fill="#9CA3AF">kcal{t.calories ? ` / ${t.calories}` : ''}</text>
+                  </svg>
+                  <div className="flex-1 space-y-1.5">
+                    {[
+                      { label: 'Proteine', grams: totals.protein, target: t.protein, color: '#22c55e' },
+                      { label: 'Carbo', grams: totals.carbs, target: t.carbs, color: '#06b6d4' },
+                      { label: 'Grăsimi', grams: totals.fat, target: t.fat, color: '#a855f7' },
+                    ].filter(m => m.target != null).map(m => (
+                      <div key={m.label} className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: m.color }} />{m.label}</span>
+                        <span className="text-gray-500">{m.grams}/{m.target}g</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )
         })()}
@@ -335,6 +368,23 @@ export default function Workspace({ owner = false }: { owner?: boolean }) {
           <button className="btn-primary" disabled={busy || !draft.trim()}>Trimite</button>
         </form>
       </div>}
+    </div>
+
+    {owner && (
+      <div className="hidden lg:block space-y-2">
+        <p className="text-xs text-gray-400 font-medium px-1">Toți clienții</p>
+        <div className="card divide-y divide-gray-100">
+          {clients.map(c => (
+            <button key={c.id} onClick={() => { setClientId(c.id); setInvite('') }} className="w-full flex items-center gap-2.5 p-2.5 text-left transition" style={c.id === clientId ? { background: 'var(--accent-soft)' } : {}}>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0" style={{ background: 'var(--accent)' }}>
+                {c.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}
+              </div>
+              <span className="text-xs font-medium truncate">{c.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )}
     </div>
   )
 }

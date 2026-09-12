@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
+import { useEffect, useMemo, useState } from 'react'
+import { format, subDays, subMonths, subYears } from 'date-fns'
 import { Droplet, Footprints, Moon, Plus, TrendingUp } from 'lucide-react'
 
 async function api(url: string, method = 'GET', body?: unknown) {
@@ -31,6 +31,7 @@ export default function ProgressTab({ owner, query }: { owner: boolean; query: s
   const [newCheckIn, setNewCheckIn] = useState({ avgWeight: '', energyLevel: '3', dietAdherencePercent: '', difficulties: '' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [range, setRange] = useState<'7' | '30' | '90' | '180' | '365' | 'all'>('30')
 
   async function action(fn: () => Promise<void>) {
     setBusy(true); setError('')
@@ -58,6 +59,15 @@ export default function ProgressTab({ owner, query }: { owner: boolean; query: s
   const first = measurements[0]
   const latest = measurements[measurements.length - 1]
   const weekOf = format(new Date(), 'yyyy-MM-dd')
+
+  const weightSeries = useMemo(() => {
+    const cutoff = range === 'all' ? null
+      : range === '365' ? subYears(new Date(), 1)
+      : range === '180' ? subMonths(new Date(), 6)
+      : range === '90' ? subMonths(new Date(), 3)
+      : subDays(new Date(), Number(range))
+    return measurements.filter(m => m.weight != null && (!cutoff || new Date(`${m.date}T12:00:00`) >= cutoff))
+  }, [measurements, range])
 
   return (
     <div className="space-y-4">
@@ -137,6 +147,39 @@ export default function ProgressTab({ owner, query }: { owner: boolean; query: s
           </form>
         )}
         {measurements.length === 0 && <p className="text-sm text-gray-400">Nicio măsurătoare încă.</p>}
+
+        {weightSeries.length >= 2 && (() => {
+          const weights = weightSeries.map(m => m.weight as number)
+          const min = Math.min(...weights), max = Math.max(...weights)
+          const span = max - min || 1
+          const w = 300, h = 80, pad = 4
+          const points = weightSeries.map((m, i) => {
+            const x = weightSeries.length > 1 ? (i / (weightSeries.length - 1)) * w : 0
+            const y = pad + (1 - (weights[i] - min) / span) * (h - 2 * pad)
+            return `${x},${y}`
+          }).join(' ')
+          const diff = weights[weights.length - 1] - weights[0]
+          return (
+            <div className="mb-3">
+              <div className="flex items-baseline justify-between mb-2">
+                <div>
+                  <span className="text-lg font-semibold">{weights[weights.length - 1]}kg</span>
+                  <span className={`text-xs ml-2 ${diff <= 0 ? 'text-green-600' : 'text-amber-600'}`}>{diff > 0 ? '+' : ''}{diff.toFixed(1)}kg</span>
+                </div>
+                <span className="text-[11px] text-gray-400">{weightSeries[0].date} → {weightSeries[weightSeries.length - 1].date}</span>
+              </div>
+              <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+                <polyline points={points} fill="none" stroke="var(--accent)" strokeWidth="2" />
+              </svg>
+              <div className="flex gap-1 mt-2">
+                {([['7', '1S'], ['30', '1L'], ['90', '3L'], ['180', '6L'], ['365', '1A'], ['all', 'Tot']] as const).map(([key, label]) => (
+                  <button key={key} onClick={() => setRange(key)} className="flex-1 text-[11px] py-1 rounded-lg" style={range === key ? { background: 'var(--ink)', color: 'white' } : { background: '#F1F5F3', color: '#6B7280' }}>{label}</button>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
         {measurements.length > 0 && (
           <div className="space-y-1 max-h-40 overflow-y-auto">
             {[...measurements].reverse().map(m => (

@@ -24,7 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </form>
       </header>
       <PwaInstall label="fiteasy Instructor" />
-      <main className="max-w-lg mx-auto px-4 py-6">{children}</main>
+      <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>
     </div>
   )
 }
