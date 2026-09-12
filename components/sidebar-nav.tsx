@@ -19,7 +19,7 @@ export default function SidebarNav({ isSuperAdmin }: { isSuperAdmin: boolean }) 
   const itemStyle = (active: boolean) => active ? { background: 'var(--accent)' } : {}
 
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-60 lg:flex-shrink-0 lg:h-screen lg:sticky lg:top-0 border-r border-gray-100 bg-white/90 backdrop-blur-sm px-4 py-5">
+    <aside className="hidden lg:flex lg:flex-col lg:w-60 lg:flex-shrink-0 border-r border-gray-100 bg-white/90 backdrop-blur-sm px-4 py-5">
       <Image src="/fiteasy-logo.png" alt="fiteasy.ro" width={209} height={98} className="h-7 w-auto mb-8" priority />
       <nav className="flex-1 space-y-1">
         <Link href="/dashboard?view=stats" className={item(activeHome)} style={itemStyle(activeHome)}><Home size={17} />Acasă</Link>
