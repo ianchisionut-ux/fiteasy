@@ -17,14 +17,14 @@ const localizer = dateFnsLocalizer({
 
 const DnDCalendar = withDragAndDrop(Calendar) as any
 
-type Entry = { id: string; kind: string; date: string; time: string; title: string; completed: boolean; [key: string]: any }
+type CalendarEntry = { id: string; kind: string; date: string; time: string; title: string; completed: boolean; [key: string]: any }
 
 export default function BigCalendar({ entries, kind, onSelectSlot, onSelectEntry, onMoveEntry, onRangeChange }: {
-  entries: Entry[]
+  entries: CalendarEntry[]
   kind: 'WORKOUT' | 'NUTRITION'
   onSelectSlot: (date: string, time: string) => void
-  onSelectEntry: (entry: Entry) => void
-  onMoveEntry: (entry: Entry, date: string, time: string) => void
+  onSelectEntry: (entry: CalendarEntry) => void
+  onMoveEntry: (entry: CalendarEntry, date: string, time: string) => void
   onRangeChange: (from: string, to: string) => void
 }) {
   const [view, setView] = useState<any>(Views.WEEK)
