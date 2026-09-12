@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { addDays, format, startOfWeek } from 'date-fns'
-import { Check, Circle, MessageCircle, Pencil, Trash2, Plus, Video, ChevronLeft, ChevronRight, BookmarkPlus } from 'lucide-react'
+import { Check, Circle, MessageCircle, Pencil, Trash2, Plus, Video, ChevronLeft, ChevronRight, BookmarkPlus, Users, CalendarDays } from 'lucide-react'
 import { MUSCLE_GROUPS, EXERCISES } from '@/lib/exercises'
 import ProgressTab from './progress-tab'
 import TemplatePicker from './template-picker'
@@ -23,6 +23,16 @@ async function api(url: string, method = 'GET', body?: unknown, signal?: AbortSi
 }
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm', 'Dum']
+
+function QuickNav({ onClients, onCalendar, onNewClient }: { onClients: () => void; onCalendar: () => void; onNewClient: () => void }) {
+  return (
+    <nav className="flex gap-2 mb-1">
+      <button onClick={onClients} className="btn-secondary text-xs flex items-center gap-1.5"><Users size={14} />Clienți</button>
+      <button onClick={onCalendar} className="btn-secondary text-xs flex items-center gap-1.5"><CalendarDays size={14} />Calendar</button>
+      <button onClick={onNewClient} className="btn-secondary text-xs flex items-center gap-1.5"><Plus size={14} />Client nou</button>
+    </nav>
+  )
+}
 
 export default function Workspace({ owner = false }: { owner?: boolean }) {
   const [clients, setClients] = useState<ClientOption[]>([])
@@ -91,6 +101,7 @@ export default function Workspace({ owner = false }: { owner?: boolean }) {
       <div className="lg:grid lg:grid-cols-[320px_1fr] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
         <div className="space-y-4">
           {error && <p className="text-sm text-red-600">{error}</p>}
+          <QuickNav onClients={() => setClientId('')} onCalendar={() => setClientId('')} onNewClient={() => setNewClientOpen(true)} />
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-semibold">Clienți</h1>
             <button className="btn-primary flex items-center gap-1.5" onClick={() => setNewClientOpen(true)}><Plus size={16} />Client nou</button>
@@ -131,6 +142,7 @@ export default function Workspace({ owner = false }: { owner?: boolean }) {
   return (
     <div className="lg:grid lg:grid-cols-[1fr_240px] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
     <div className="space-y-4">
+      {owner && <QuickNav onClients={() => { setClientId(''); setInvite('') }} onCalendar={() => { setClientId(''); setInvite('') }} onNewClient={() => { setClientId(''); setInvite(''); setNewClientOpen(true) }} />}
       {owner && (
         <div className="flex items-center justify-between">
           <button onClick={() => { setClientId(''); setInvite('') }} className="text-sm text-gray-500 hover:text-gray-900">← Toți clienții</button>
