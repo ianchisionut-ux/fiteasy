@@ -12,6 +12,18 @@ body {
   background: #FAFAF8;
 }
 
+.app-bg {
+  background-image: url('/app-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+.app-bg-overlay {
+  background: rgba(250, 250, 248, 0.88);
+  min-height: 100vh;
+}
+
 .btn-primary {
   background: var(--accent);
   color: white;
