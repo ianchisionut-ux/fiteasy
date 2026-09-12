@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { addDays, format, startOfWeek } from 'date-fns'
-import { Check, Circle, MessageCircle, Pencil, Trash2, Plus, Video, BookmarkPlus, Users, CalendarDays } from 'lucide-react'
+import { Check, Circle, MessageCircle, Pencil, Trash2, Plus, Video, BookmarkPlus, Users, BarChart3, Dumbbell, Apple } from 'lucide-react'
 import BigCalendar from './big-calendar'
 import DashboardHome from './dashboard-home'
 import { MUSCLE_GROUPS, EXERCISES } from '@/lib/exercises'
@@ -24,11 +24,15 @@ async function api(url: string, method = 'GET', body?: unknown, signal?: AbortSi
   return data ?? {}
 }
 
-function QuickNav({ onClients, onCalendar, onNewClient }: { onClients: () => void; onCalendar: () => void; onNewClient: () => void }) {
+function QuickNav({ view, onClients, onStats, onNewClient }: { view: 'clients' | 'stats'; onClients: () => void; onStats: () => void; onNewClient: () => void }) {
+  const pill = (active: boolean) => active
+    ? "text-xs flex items-center gap-1.5 px-4 py-2 rounded-full font-medium"
+    : "btn-secondary text-xs flex items-center gap-1.5"
+  const pillStyle = (active: boolean) => active ? { background: 'var(--accent)', color: 'white' } : {}
   return (
     <nav className="flex gap-2 mb-1">
-      <button onClick={onClients} className="btn-secondary text-xs flex items-center gap-1.5"><Users size={14} />Clienți</button>
-      <button onClick={onCalendar} className="btn-secondary text-xs flex items-center gap-1.5"><CalendarDays size={14} />Calendar</button>
+      <button onClick={onClients} className={pill(view === 'clients')} style={pillStyle(view === 'clients')}><Users size={14} />Clienți</button>
+      <button onClick={onStats} className={pill(view === 'stats')} style={pillStyle(view === 'stats')}><BarChart3 size={14} />Statistici</button>
       <button onClick={onNewClient} className="btn-secondary text-xs flex items-center gap-1.5"><Plus size={14} />Client nou</button>
     </nav>
   )
@@ -37,6 +41,7 @@ function QuickNav({ onClients, onCalendar, onNewClient }: { onClients: () => voi
 export default function Workspace({ owner = false, instructorName = '' }: { owner?: boolean; instructorName?: string }) {
   const [clients, setClients] = useState<ClientOption[]>([])
   const [clientId, setClientId] = useState('')
+  const [view, setView] = useState<'clients' | 'stats'>('clients')
   const [clientName, setClientName] = useState('')
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [tab, setTab] = useState('WORKOUT')
@@ -96,12 +101,22 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
   const selectedEntries = dayEntries(selectedDate)
   const selectedLabel = new Date(`${selectedDate}T12:00:00`).toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Bucharest' })
 
+  function openClient(id: string, startTab?: string) {
+    if (startTab) setTab(startTab)
+    setClientId(id)
+  }
+
   if (owner && !clientId) {
     return (
       <>
-      <QuickNav onClients={() => setClientId('')} onCalendar={() => setClientId('')} onNewClient={() => setNewClientOpen(true)} />
-      <DashboardHome instructorName={instructorName} onSelectClient={setClientId} onNewClient={() => setNewClientOpen(true)} onDemoData={() => action(async () => { await api('/api/seed-demo', 'POST'); const list = await api('/api/clients'); setClients(list.clients) })} />
-      <div className="lg:grid lg:grid-cols-[320px_1fr] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
+      <QuickNav view={view} onClients={() => setView('clients')} onStats={() => setView('stats')} onNewClient={() => setNewClientOpen(true)} />
+
+      {view === 'stats' && (
+        <DashboardHome instructorName={instructorName} onSelectClient={openClient} onNewClient={() => { setView('clients'); setNewClientOpen(true) }} onDemoData={() => action(async () => { await api('/api/seed-demo', 'POST'); const list = await api('/api/clients'); setClients(list.clients) })} />
+      )}
+
+      {view === 'clients' && (
+      <div className="lg:grid lg:grid-cols-[380px_1fr] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
         <div className="space-y-4">
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex items-center justify-between">
@@ -127,17 +142,22 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
               })}>Populează cu date demo (3 clienți)</button>
             </div>}
             {clients.map(c => (
-              <button key={c.id} onClick={() => setClientId(c.id)} className="w-full flex items-center gap-3 p-3 text-left hover:bg-[var(--accent-soft)] transition">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0" style={{ background: 'var(--accent)' }}>
-                  {c.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{c.name}</p>{!c.active && <p className="text-xs text-amber-600">Acces inactiv</p>}</div>
-              </button>
+              <div key={c.id} className="flex items-center gap-2 p-2.5 hover:bg-[var(--accent-soft)] transition group">
+                <button onClick={() => openClient(c.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0" style={{ background: 'var(--accent)' }}>
+                    {c.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{c.name}</p>{!c.active && <p className="text-xs text-amber-600">Acces inactiv</p>}</div>
+                </button>
+                <button title="Antrenament rapid" onClick={() => openClient(c.id, 'WORKOUT')} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-white" style={{ color: 'var(--accent)' }}><Dumbbell size={15} /></button>
+                <button title="Nutriție rapid" onClick={() => openClient(c.id, 'NUTRITION')} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-white" style={{ color: '#3b82f6' }}><Apple size={15} /></button>
+              </div>
             ))}
           </div>
         </div>
-        <MonthOverview onSelectClient={setClientId} />
+        <MonthOverview onSelectClient={openClient} />
       </div>
+      )}
       </>
     )
   }
@@ -145,7 +165,7 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
   return (
     <div className="lg:grid lg:grid-cols-[1fr_240px] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
     <div className="space-y-4">
-      {owner && <QuickNav onClients={() => { setClientId(''); setInvite('') }} onCalendar={() => { setClientId(''); setInvite('') }} onNewClient={() => { setClientId(''); setInvite(''); setNewClientOpen(true) }} />}
+      {owner && <QuickNav view={view} onClients={() => { setView('clients'); setClientId(''); setInvite('') }} onStats={() => { setView('stats'); setClientId(''); setInvite('') }} onNewClient={() => { setView('clients'); setClientId(''); setInvite(''); setNewClientOpen(true) }} />}
       {owner && (
         <div className="flex items-center justify-between">
           <button onClick={() => { setClientId(''); setInvite('') }} className="text-sm text-gray-500 hover:text-gray-900">← Toți clienții</button>
