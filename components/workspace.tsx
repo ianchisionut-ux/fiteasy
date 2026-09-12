@@ -321,7 +321,7 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
         {selectedEntries.length === 0 && owner && <button onClick={() => { setEditing(null); setPlan({ ...emptyPlan, kind: tab, date: selectedDate }); setEditorOpen(true) }} className="w-full card border-dashed p-4 text-sm text-gray-400 flex items-center gap-2 justify-center hover:bg-gray-50"><Plus size={16} />Adaugă un plan pentru această zi</button>}
 
         {selectedEntries.map(entry => (
-          <div key={entry.id} className="card p-4">
+          <div key={entry.id} className="card card-hover fade-in p-4">
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-400">{entry.time}</span>
               {entry.muscleGroup && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[var(--accent-soft)]" style={{ color: 'var(--accent-dark)' }}>{entry.muscleGroup}</span>}

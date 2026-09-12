@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { CalendarDays, MessageCircle, Sparkles, TrendingUp } from 'lucide-react'
+import AnimatedPreview from '@/components/animated-preview'
 
 export default function HomePage() {
   return (
@@ -39,6 +40,10 @@ export default function HomePage() {
           <Link href="/login" className="text-sm px-5 py-2.5 rounded-full text-white border border-white/40 hover:bg-white/10 transition">Am deja cont</Link>
         </div>
       </section>
+
+      <div className="px-6 pb-16 relative z-10">
+        <AnimatedPreview />
+      </div>
 
       <section className="max-w-5xl mx-auto px-6 pb-24 grid sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
         {[

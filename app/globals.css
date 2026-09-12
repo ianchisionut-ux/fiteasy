@@ -43,4 +43,39 @@ body {
   background: white;
   border: 1px solid #E5E7EB;
   border-radius: 1rem;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card-hover:hover {
+  box-shadow: 0 6px 20px rgba(15, 110, 86, 0.08);
+  transform: translateY(-2px);
+}
+
+.btn-primary, .btn-secondary {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.btn-primary:active, .btn-secondary:active {
+  transform: scale(0.97);
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(15, 110, 86, 0.25);
+}
+
+/* Apariție lină pentru carduri/secțiuni la încărcare */
+.fade-in {
+  animation: fadeIn 0.35s ease-out both;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Grafice SVG — se desenează la apariție, nu apar brusc */
+.draw-line {
+  stroke-dasharray: var(--line-length, 1000);
+  stroke-dashoffset: var(--line-length, 1000);
+  animation: drawLine 0.9s ease-out forwards;
+}
+@keyframes drawLine {
+  to { stroke-dashoffset: 0; }
 }

@@ -9,8 +9,20 @@ type Summary = { totalClients: number; activeClients: number; todayEntries: Toda
 
 export default function DashboardHome({ instructorName, onSelectClient, onNewClient, onDemoData }: { instructorName: string; onSelectClient: (id: string) => void; onNewClient: () => void; onDemoData: () => void }) {
   const [data, setData] = useState<Summary | null>(null)
+  const [countedActive, setCountedActive] = useState(0)
+  const [countedMsgs, setCountedMsgs] = useState(0)
 
   useEffect(() => { fetch('/api/dashboard-summary').then(r => r.json()).then(setData) }, [])
+
+  useEffect(() => {
+    if (!data) return
+    const targets = [{ set: setCountedActive, to: data.activeClients }, { set: setCountedMsgs, to: data.recentMessages.length }]
+    targets.forEach(({ set, to }) => {
+      let n = 0
+      const step = Math.max(1, Math.ceil(to / 20))
+      const timer = setInterval(() => { n = Math.min(to, n + step); set(n); if (n >= to) clearInterval(timer) }, 30)
+    })
+  }, [data])
 
   if (!data) return <div className="card p-8 text-center text-sm text-gray-400">Se încarcă…</div>
 
@@ -19,21 +31,21 @@ export default function DashboardHome({ instructorName, onSelectClient, onNewCli
   const days = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 fade-in">
       <h1 className="text-xl font-semibold">Bine ai revenit, {instructorName.split(' ')[0]} 👋</h1>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="card p-4 flex items-center justify-between">
-          <div><p className="text-xs text-gray-500">Clienți activi</p><p className="text-2xl font-semibold mt-1">{data.activeClients}</p></div>
+        <div className="card card-hover p-4 flex items-center justify-between">
+          <div><p className="text-xs text-gray-500">Clienți activi</p><p className="text-2xl font-semibold mt-1">{countedActive}</p></div>
           <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--accent-soft)' }}><Users size={18} style={{ color: 'var(--accent)' }} /></div>
         </div>
-        <div className="card p-4 flex items-center justify-between">
-          <div><p className="text-xs text-gray-500">Mesaje noi</p><p className="text-2xl font-semibold mt-1">{data.recentMessages.length}</p></div>
+        <div className="card card-hover p-4 flex items-center justify-between">
+          <div><p className="text-xs text-gray-500">Mesaje noi</p><p className="text-2xl font-semibold mt-1">{countedMsgs}</p></div>
           <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--accent-soft)' }}><MessageCircle size={18} style={{ color: 'var(--accent)' }} /></div>
         </div>
       </div>
 
-      <div className="card p-4">
+      <div className="card card-hover p-4">
         <h2 className="text-sm font-semibold mb-3">Evoluție completare planuri — ultimele 7 zile</h2>
         {(() => {
           const w = 300, h = 90, pad = 6
@@ -44,8 +56,8 @@ export default function DashboardHome({ instructorName, onSelectClient, onNewCli
           }).join(' ')
           return (
             <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
-              <polyline points={points} fill="none" stroke="var(--accent)" strokeWidth="2.5" />
-              {data.weeklyCompletion.map((d, i) => <circle key={i} cx={(i / 6) * w} cy={pad + (1 - d.rate / 100) * (h - 2 * pad)} r="3" fill="var(--accent)" />)}
+              <polyline points={points} fill="none" stroke="var(--accent)" strokeWidth="2.5" pathLength={1} style={{ strokeDasharray: 1, strokeDashoffset: 1, animation: 'drawLine 1s ease-out forwards' }} />
+              {data.weeklyCompletion.map((d, i) => <circle key={i} cx={(i / 6) * w} cy={pad + (1 - d.rate / 100) * (h - 2 * pad)} r="3" fill="var(--accent)" style={{ opacity: 0, animation: `fadeIn 0.3s ease-out ${0.3 + i * 0.08}s forwards` }} />)}
             </svg>
           )
         })()}
@@ -57,7 +69,7 @@ export default function DashboardHome({ instructorName, onSelectClient, onNewCli
         </div>
       </div>
 
-      <div className="card p-4">
+      <div className="card card-hover p-4">
         <h2 className="text-sm font-semibold mb-3">Astăzi</h2>
         {data.todayEntries.length === 0 && <p className="text-sm text-gray-400">Nimic planificat azi.</p>}
         <div className="space-y-2">
@@ -73,7 +85,7 @@ export default function DashboardHome({ instructorName, onSelectClient, onNewCli
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
-        <div className="card p-4">
+        <div className="card card-hover p-4">
           <h2 className="text-sm font-semibold mb-3">Acțiuni rapide</h2>
           <div className="space-y-1">
             <button onClick={onNewClient} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 text-left">
@@ -88,7 +100,7 @@ export default function DashboardHome({ instructorName, onSelectClient, onNewCli
             )}
           </div>
         </div>
-        <div className="card p-4">
+        <div className="card card-hover p-4">
           <h2 className="text-sm font-semibold mb-3">Mesaje recente</h2>
           {data.recentMessages.length === 0 && <p className="text-sm text-gray-400">Niciun mesaj încă.</p>}
           <div className="space-y-2">
