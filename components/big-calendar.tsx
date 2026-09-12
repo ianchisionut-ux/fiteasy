@@ -23,8 +23,8 @@ export default function BigCalendar({ entries, kind, onSelectSlot, onSelectEntry
   entries: CalendarEntry[]
   kind: 'WORKOUT' | 'NUTRITION'
   onSelectSlot: (date: string, time: string) => void
-  onSelectEntry: (entry: CalendarEntry) => void
-  onMoveEntry: (entry: CalendarEntry, date: string, time: string) => void
+  onSelectEntry: (entry: any) => void
+  onMoveEntry: (entry: any, date: string, time: string) => void
   onRangeChange: (from: string, to: string) => void
 }) {
   const [view, setView] = useState<any>(Views.WEEK)
