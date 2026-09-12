@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { addDays, format, startOfWeek } from 'date-fns'
-import { Check, Circle, MessageCircle, Pencil, Trash2, Plus, Video, ChevronLeft, ChevronRight, BookmarkPlus, Users, CalendarDays } from 'lucide-react'
+import { Check, Circle, MessageCircle, Pencil, Trash2, Plus, Video, BookmarkPlus, Users, CalendarDays } from 'lucide-react'
+import BigCalendar from './big-calendar'
 import { MUSCLE_GROUPS, EXERCISES } from '@/lib/exercises'
 import ProgressTab from './progress-tab'
 import TemplatePicker from './template-picker'
@@ -21,8 +22,6 @@ async function api(url: string, method = 'GET', body?: unknown, signal?: AbortSi
   if (!response.ok) throw new Error(data?.error || `Serverul nu a putut finaliza cererea (HTTP ${response.status}).`)
   return data ?? {}
 }
-
-const WEEKDAYS = ['Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm', 'Dum']
 
 function QuickNav({ onClients, onCalendar, onNewClient }: { onClients: () => void; onCalendar: () => void; onNewClient: () => void }) {
   return (
@@ -57,8 +56,8 @@ export default function Workspace({ owner = false }: { owner?: boolean }) {
   const [savingTemplate, setSavingTemplate] = useState(false)
 
   const week = startOfWeek(new Date(`${selectedDate}T12:00:00`), { weekStartsOn: 1 })
-  const weekDays = Array.from({ length: 7 }, (_, i) => format(addDays(week, i), 'yyyy-MM-dd'))
-  const from = weekDays[0], to = weekDays[6]
+  const [calendarRange, setCalendarRange] = useState({ from: format(week, 'yyyy-MM-dd'), to: format(addDays(week, 6), 'yyyy-MM-dd') })
+  const from = calendarRange.from, to = calendarRange.to
   const query = owner ? `mode=instructor&clientId=${encodeURIComponent(clientId)}` : 'mode=client'
 
   async function action(fn: () => Promise<void>) {
@@ -167,26 +166,27 @@ export default function Workspace({ owner = false }: { owner?: boolean }) {
       {tab === 'PROGRES' && <ProgressTab owner={owner} query={query} />}
 
       {(tab === 'WORKOUT' || tab === 'NUTRITION') && <>
-        <div className="flex items-center gap-1">
-          <button aria-label="Săptămâna precedentă" onClick={() => setSelectedDate(format(addDays(week, -7), 'yyyy-MM-dd'))} className="p-1.5 rounded-lg hover:bg-gray-100"><ChevronLeft size={16} /></button>
-          <div className="flex-1 grid grid-cols-7 gap-1.5">
-            {weekDays.map((day, i) => {
-              const dayHasEntries = dayEntries(day)
-              const allDone = dayHasEntries.length > 0 && dayHasEntries.every(e => e.completed)
-              const isSelected = day === selectedDate
-              return (
-                <button key={day} onClick={() => setSelectedDate(day)} className="rounded-xl py-2 text-center transition" style={isSelected ? { background: 'var(--accent)', color: 'white' } : {}}>
-                  <div className="text-[11px]" style={{ color: isSelected ? 'rgba(255,255,255,0.8)' : '#9CA3AF' }}>{WEEKDAYS[i]}</div>
-                  <div className="text-sm font-medium mt-0.5">{format(addDays(week, i), 'd')}</div>
-                  <div className="h-3 flex items-center justify-center mt-0.5">
-                    {allDone ? <Check size={11} /> : dayHasEntries.length > 0 && <span className="w-1.5 h-1.5 rounded-full" style={{ background: isSelected ? 'white' : 'var(--accent)' }} />}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-          <button aria-label="Săptămâna următoare" onClick={() => setSelectedDate(format(addDays(week, 7), 'yyyy-MM-dd'))} className="p-1.5 rounded-lg hover:bg-gray-100"><ChevronRight size={16} /></button>
-        </div>
+        <BigCalendar
+          entries={entries}
+          kind={tab as 'WORKOUT' | 'NUTRITION'}
+          onRangeChange={(f, t) => setCalendarRange({ from: f, to: t })}
+          onSelectSlot={(date, time) => {
+            setSelectedDate(date)
+            if (owner) { setEditing(null); setPlan({ ...emptyPlan, kind: tab, date, time }); setEditorOpen(true) }
+          }}
+          onSelectEntry={(entry: Entry) => {
+            setSelectedDate(entry.date)
+            if (owner) { setEditing(entry); setPlan({ kind: entry.kind, date: entry.date, time: entry.time, title: entry.title, details: entry.details, muscleGroup: entry.muscleGroup ?? '', protein: entry.protein?.toString() ?? '', carbs: entry.carbs?.toString() ?? '', fat: entry.fat?.toString() ?? '', calories: entry.calories?.toString() ?? '' }); setEditorOpen(true) }
+            else setProgress(entry)
+          }}
+          onMoveEntry={(entry: Entry, date, time) => {
+            if (!owner) return
+            void action(async () => {
+              await api(`/api/entries/${entry.id}?${query}`, 'PATCH', { kind: entry.kind, date, time, title: entry.title, details: entry.details, muscleGroup: entry.muscleGroup ?? undefined, version: entry.version })
+              const data = await api(`/api/entries?${query}&from=${from}&to=${to}`); setEntries(data.entries)
+            })
+          }}
+        />
 
         <div className="flex items-center gap-2 flex-wrap">
           {owner && <button className="btn-secondary flex items-center gap-1.5 text-sm" onClick={() => { setEditing(null); setPlan({ ...emptyPlan, kind: tab, date: selectedDate }); setEditorOpen(true) }}><Plus size={15} />{tab === 'NUTRITION' ? 'Adaugă masă' : 'Adaugă antrenament'}</button>}
