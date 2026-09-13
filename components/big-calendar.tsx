@@ -52,7 +52,7 @@ export default function BigCalendar({ entries, kind, onSelectSlot, onSelectEntry
   }), [entries, kind])
 
   return (
-    <div className="card p-2 lg:p-3" style={{ height: 560 }}>
+    <div className="card calendar-shell" style={{ height: 690 }}>
       <DnDCalendar
         localizer={localizer}
         events={events}
@@ -75,8 +75,9 @@ export default function BigCalendar({ entries, kind, onSelectSlot, onSelectEntry
         resizable={false}
         eventPropGetter={(event: any) => ({
           style: {
-            background: event.resource.completed ? '#0F6E56' : (kind === 'WORKOUT' ? '#0F6E56AA' : '#3b82f6AA'),
-            borderRadius: '6px', border: 'none', fontSize: '12px',
+            background: event.resource.completed ? '#2bb8ad' : (kind === 'WORKOUT' ? '#d8f7f2' : '#e2f2fb'),
+            color: event.resource.completed ? '#ffffff' : (kind === 'WORKOUT' ? '#176f68' : '#317b9e'),
+            borderRadius: '4px', border: 'none', fontSize: '12px',
           },
         })}
       />

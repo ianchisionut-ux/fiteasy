@@ -134,13 +134,14 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
       )}
 
       {view === 'clients' && (
-      <div className="lg:grid lg:grid-cols-[380px_1fr] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
+      <div className="space-y-5">
+        <div className="flex items-end justify-between">
+          <div><p className="page-kicker">GESTIONARE CLIENȚI</p><h1 className="text-2xl font-semibold mt-1">Toți clienții</h1><p className="text-sm text-gray-500 mt-1">Planifică, urmărește și comunică dintr-un singur loc.</p></div>
+          <button className="btn-primary flex items-center gap-1.5" onClick={() => setNewClientOpen(true)}><Plus size={16} />Adaugă client</button>
+        </div>
+      <div className="lg:grid lg:grid-cols-[360px_1fr] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
         <div className="space-y-4">
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold">Clienți</h1>
-            <button className="btn-primary flex items-center gap-1.5" onClick={() => setNewClientOpen(true)}><Plus size={16} />Client nou</button>
-          </div>
           {newClientOpen && <form className="card p-4 space-y-3" onSubmit={e => {
             e.preventDefault(); void action(async () => {
               const d = await api('/api/clients', 'POST', { action: 'create', ...newClient })
@@ -175,19 +176,23 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
         </div>
         <MonthOverview onSelectClient={openClient} />
       </div>
+      </div>
       )}
       </>
     )
   }
 
   return (
-    <div className="lg:grid lg:grid-cols-[1fr_240px] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
     <div className="space-y-4">
       {owner && <div className="lg:hidden"><QuickNav view={view} onClients={() => { updateUrl({ view: null, client: null }); setInvite('') }} onStats={() => { updateUrl({ view: 'stats', client: null }); setInvite('') }} onNewClient={() => { updateUrl({ view: null, client: null }); setInvite(''); setNewClientOpen(true) }} /></div>}
       {owner && (
-        <div className="flex items-center justify-between">
-          <button onClick={() => { setClientId(''); setInvite('') }} className="text-sm text-gray-500 hover:text-gray-900">← Toți clienții</button>
-          <h1 className="text-base font-semibold">{clientName}</h1>
+        <div className="flex items-end justify-between border-b border-[#e7eceb] pb-5">
+          <div>
+            <button onClick={() => { setClientId(''); setInvite('') }} className="page-kicker hover:underline">← ÎNAPOI LA CLIENȚI</button>
+            <h1 className="text-2xl font-semibold mt-2">{tab === 'PROGRES' ? 'Progres' : tab === 'MESSAGES' ? 'Mesaje și note' : tab === 'NUTRITION' ? 'Calendar nutriție' : 'Calendar client'}</h1>
+            <p className="text-sm text-gray-500 mt-1">{clientName}</p>
+          </div>
           <button className="btn-secondary text-xs" disabled={busy} onClick={() => action(async () => {
             const d = await api('/api/clients', 'POST', { action: 'invite', clientId }); setInvite(d.inviteUrl)
           })}>Link de acces</button>
@@ -199,15 +204,19 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
       </div>}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <nav className="flex gap-2 flex-wrap">
+      <nav className="section-tabs flex flex-wrap">
         {[['WORKOUT', 'Antrenamente'], ['NUTRITION', 'Nutriție'], ['PROGRES', 'Progres'], ['MESSAGES', 'Mesaje']].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)} className="px-4 py-2 rounded-full text-sm font-medium transition" style={tab === key ? { background: 'var(--accent)', color: 'white' } : { background: 'white', border: '1px solid #E5E7EB' }}>{label}</button>
+          <button key={key} onClick={() => setTab(key)} className={`section-tab ${tab === key ? 'section-tab-active' : ''}`}>{label}</button>
         ))}
       </nav>
 
       {tab === 'PROGRES' && <ProgressTab owner={owner} query={query} />}
 
       {(tab === 'WORKOUT' || tab === 'NUTRITION') && <>
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+          {owner && <TemplatePicker kind={tab as 'WORKOUT' | 'NUTRITION'} query={query} onApplied={() => { void (async () => { const data = await api(`/api/entries?${query}&from=${from}&to=${to}`); setEntries(data.entries) })() }} />}
+          {owner && <button className="btn-primary flex items-center gap-1.5 text-sm" onClick={() => { setEditing(null); setPlan({ ...emptyPlan, kind: tab, date: selectedDate }); setEditorOpen(true) }}><Plus size={15} />{tab === 'NUTRITION' ? 'Adaugă masă' : 'Adaugă antrenament'}</button>}
+        </div>
         <BigCalendar
           entries={entries}
           kind={tab as 'WORKOUT' | 'NUTRITION'}
@@ -229,11 +238,6 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
             })
           }}
         />
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {owner && <button className="btn-secondary flex items-center gap-1.5 text-sm" onClick={() => { setEditing(null); setPlan({ ...emptyPlan, kind: tab, date: selectedDate }); setEditorOpen(true) }}><Plus size={15} />{tab === 'NUTRITION' ? 'Adaugă masă' : 'Adaugă antrenament'}</button>}
-          {owner && <TemplatePicker kind={tab as 'WORKOUT' | 'NUTRITION'} query={query} onApplied={() => { void (async () => { const data = await api(`/api/entries?${query}&from=${from}&to=${to}`); setEntries(data.entries) })() }} />}
-        </div>
 
         {tab === 'NUTRITION' && (() => {
           const client = clients.find(c => c.id === clientId)
@@ -291,7 +295,7 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
           )
         })()}
 
-        {editorOpen && owner && <form className="card p-4 space-y-3" onSubmit={e => {
+        {editorOpen && owner && <><button aria-label="Închide editorul" className="drawer-backdrop" onClick={() => setEditorOpen(false)} /><form className="plan-drawer space-y-4" onSubmit={e => {
           e.preventDefault(); void action(async () => {
             const { protein, carbs, fat, calories, ...rest } = plan
             const payload: any = { ...rest }
@@ -307,7 +311,10 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
             const data = await api(`/api/entries?${query}&from=${from}&to=${to}`); setEntries(data.entries)
           })
         }}>
-          <h2 className="font-semibold text-sm">{editing ? 'Modifică planul' : 'Plan nou'}</h2>
+          <div className="flex items-center justify-between border-b border-[#e7eceb] pb-4">
+            <div><p className="page-kicker">{plan.kind === 'NUTRITION' ? 'NUTRIȚIE' : 'ANTRENAMENT'}</p><h2 className="font-semibold text-xl mt-1">{editing ? 'Modifică planul' : 'Adaugă în calendar'}</h2></div>
+            <button type="button" aria-label="Închide" onClick={() => setEditorOpen(false)} className="w-9 h-9 rounded-full border border-gray-200 text-gray-500">×</button>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="text-xs">Data<input required type="date" className="field mt-1" value={plan.date} onChange={e => setPlan({ ...plan, date: e.target.value })} /></label>
             <label className="text-xs">Ora<input required type="time" className="field mt-1" value={plan.time} onChange={e => setPlan({ ...plan, time: e.target.value })} /></label>
@@ -336,8 +343,8 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
             <label className="text-xs">Grăsimi (g)<input type="number" min="0" className="field mt-1" value={plan.fat} onChange={e => setPlan({ ...plan, fat: e.target.value })} /></label>
             <label className="text-xs">Kcal<input type="number" min="0" className="field mt-1" value={plan.calories} onChange={e => setPlan({ ...plan, calories: e.target.value })} /></label>
           </div>}
-          <div className="flex gap-2"><button className="btn-primary" disabled={busy}>Salvează</button><button type="button" className="btn-secondary" onClick={() => setEditorOpen(false)}>Renunță</button></div>
-        </form>}
+          <div className="drawer-actions"><button type="button" className="btn-secondary" onClick={() => setEditorOpen(false)}>Renunță</button><button className="btn-primary" disabled={busy}>Salvează planul</button></div>
+        </form></>}
 
         {!editorOpen && selectedEntries.length > 0 && owner && (
           <button disabled={savingTemplate} className="text-xs underline flex items-center gap-1 text-gray-500" onClick={async () => {

@@ -70,10 +70,10 @@ export default function ProgressTab({ owner, query }: { owner: boolean; query: s
   }, [measurements, range])
 
   return (
-    <div className="space-y-4">
+    <div className="progress-layout">
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="card p-4">
+      <div className="card p-5 progress-intake">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold">Anamneză</h2>
           {!intakeOpen && <button className="text-xs underline" style={{ color: 'var(--accent)' }} onClick={() => setIntakeOpen(true)}>{intake.goals || intake.medicalHistory ? 'Editează' : owner ? 'Vezi' : 'Completează'}</button>}
@@ -100,7 +100,7 @@ export default function ProgressTab({ owner, query }: { owner: boolean; query: s
       </div>
 
       {!owner && (
-        <div className="card p-4">
+        <div className="card p-5">
           <h2 className="text-sm font-semibold mb-3">Obiceiuri azi</h2>
           <div className="grid grid-cols-3 gap-3">
             <label className="text-center">
@@ -123,7 +123,7 @@ export default function ProgressTab({ owner, query }: { owner: boolean; query: s
         </div>
       )}
 
-      <div className="card p-4">
+      <div className="card p-5 progress-measurements">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold">Măsurători corporale</h2>
           <button className="text-xs underline flex items-center gap-1" style={{ color: 'var(--accent)' }} onClick={() => setMeasurementOpen(o => !o)}><Plus size={13} />Adaugă</button>
@@ -152,7 +152,7 @@ export default function ProgressTab({ owner, query }: { owner: boolean; query: s
           const weights = weightSeries.map(m => m.weight as number)
           const min = Math.min(...weights), max = Math.max(...weights)
           const span = max - min || 1
-          const w = 300, h = 80, pad = 4
+          const w = 600, h = 180, pad = 12
           const points = weightSeries.map((m, i) => {
             const x = weightSeries.length > 1 ? (i / (weightSeries.length - 1)) * w : 0
             const y = pad + (1 - (weights[i] - min) / span) * (h - 2 * pad)
@@ -169,7 +169,8 @@ export default function ProgressTab({ owner, query }: { owner: boolean; query: s
                 <span className="text-[11px] text-gray-400">{weightSeries[0].date} → {weightSeries[weightSeries.length - 1].date}</span>
               </div>
               <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
-                <polyline points={points} fill="none" stroke="var(--accent)" strokeWidth="2" />
+                {[0, 1, 2, 3].map(i => <line key={i} x1="0" x2={w} y1={12 + i * 48} y2={12 + i * 48} stroke="#edf1f0" strokeDasharray="5 8" />)}
+                <polyline points={points} fill="none" stroke="var(--accent)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
               </svg>
               <div className="flex gap-1 mt-2">
                 {([['7', '1S'], ['30', '1L'], ['90', '3L'], ['180', '6L'], ['365', '1A'], ['all', 'Tot']] as const).map(([key, label]) => (
@@ -204,7 +205,7 @@ export default function ProgressTab({ owner, query }: { owner: boolean; query: s
         )}
       </div>
 
-      <div className="card p-4">
+      <div className="card p-5 progress-checkin">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold">Check-in săptămânal</h2>
           {!owner && <button className="text-xs underline flex items-center gap-1" style={{ color: 'var(--accent)' }} onClick={() => setCheckInOpen(o => !o)}><Plus size={13} />Trimite pentru săptămâna asta</button>}

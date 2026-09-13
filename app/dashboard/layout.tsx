@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import PwaInstall from '@/components/pwa-install'
 import SidebarNav from '@/components/sidebar-nav'
 import MobileHeader from '@/components/mobile-header'
+import DesktopTopbar from '@/components/desktop-topbar'
 import type { Metadata, Viewport } from 'next'
 
 export const metadata: Metadata = {
@@ -25,8 +26,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </Suspense>
       <div className="flex-1 min-w-0">
         <MobileHeader />
+        <DesktopTopbar instructorName={(session as any)?.user?.name ?? ''} />
         <PwaInstall label="fiteasy Instructor" />
-        <main className="max-w-6xl mx-auto px-4 py-6">{children}</main>
+        <main className="dashboard-main">{children}</main>
       </div>
     </div>
     </div>
