@@ -1,5 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import SidebarNav from '@/components/sidebar-nav'
+import DesktopTopbar from '@/components/desktop-topbar'
 
 export default async function SuperadminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -8,12 +10,10 @@ export default async function SuperadminLayout({ children }: { children: React.R
 
   return (
     <div className="app-bg min-h-screen">
-    <div className="app-bg-overlay">
-      <header className="border-b border-gray-100 bg-white/90 backdrop-blur-sm px-4 py-3 flex items-center justify-between">
-        <span className="font-semibold text-sm">fiteasy — Admin</span>
-        <a href="/dashboard" className="text-sm text-gray-500 hover:text-gray-900">Înapoi la dashboard</a>
-      </header>
-      <main className="max-w-4xl mx-auto px-4 py-6">{children}</main>
+    <div className="app-bg-overlay lg:flex">
+      <SidebarNav isSuperAdmin />
+      <div className="flex-1 min-w-0"><DesktopTopbar instructorName={(session as any)?.user?.name ?? 'Superadmin'} />
+      <main className="dashboard-main">{children}</main></div>
     </div>
     </div>
   )

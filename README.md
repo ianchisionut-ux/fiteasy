@@ -2,6 +2,14 @@
 
 Aplicație separată de bookeasy, pentru instructori de fitness: antrenamente, nutriție și mesaje (cu apel video Jitsi) cu clienții lor.
 
+## Roluri și funcționalități
+
+- **Superadmin** — creează și editează administratori, activează/dezactivează accesul și vede numărul de clienți gestionați.
+- **Administrator / instructor** — gestionează clienți, programe structurate pe săptămâni și zile, obiective nutriționale, reminders, note, recorduri de progres și mesaje.
+- **Client** — vede programul atribuit, calendarul, nutriția, reminders, progresul, notele și conversația cu instructorul.
+
+FitEasy nu include plăți sau recenzii.
+
 ## Stack
 
 Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · Prisma · PostgreSQL (Neon) · Cloudflare Workers (OpenNext) · NextAuth
@@ -16,6 +24,8 @@ cp .env.example .env
 npx prisma migrate deploy
 npm run dev
 ```
+
+După actualizarea aplicației, rulează întotdeauna `npx prisma migrate deploy` înainte de pornirea noii versiuni; funcțiile de programe, reminders, note și recorduri folosesc tabelele din migrarea `20260913090000_coach_management`.
 
 ## Primul cont de instructor
 

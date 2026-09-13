@@ -16,6 +16,7 @@ type Intake = { medicalHistory: string; injuries: string; experienceLevel: strin
 type Measurement = { id: string; date: string; weight: number | null; waist: number | null; hips: number | null; arms: number | null; thighs: number | null; notes: string }
 type Habit = { date: string; waterMl: number | null; steps: number | null; sleepHours: number | null }
 type CheckIn = { id: string; weekOf: string; avgWeight: number | null; energyLevel: number | null; dietAdherencePercent: number | null; difficulties: string }
+type ProgressRecord = { id: string; exerciseName: string; date: string; weight: number | null; reps: number | null; source: string; notes: string }
 
 const emptyIntake: Intake = { medicalHistory: '', injuries: '', experienceLevel: '', lifestyle: '', foodPreferences: '', goals: '' }
 
@@ -32,6 +33,9 @@ export default function ProgressTab({ owner, query }: { owner: boolean; query: s
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [range, setRange] = useState<'7' | '30' | '90' | '180' | '365' | 'all'>('30')
+  const [records, setRecords] = useState<ProgressRecord[]>([])
+  const [recordOpen, setRecordOpen] = useState(false)
+  const [recordForm, setRecordForm] = useState({ exerciseName: 'Îndreptări convenționale', date: format(new Date(), 'yyyy-MM-dd'), weight: '', reps: '', notes: '' })
 
   async function action(fn: () => Promise<void>) {
     setBusy(true); setError('')
@@ -41,14 +45,16 @@ export default function ProgressTab({ owner, query }: { owner: boolean; query: s
 
   useEffect(() => {
     void action(async () => {
-      const [i, m, c] = await Promise.all([
+      const [i, m, c, r] = await Promise.all([
         api(`/api/intake?${query}`),
         api(`/api/measurements?${query}`),
         api(`/api/checkins?${query}`),
+        api(`/api/progress-records?${query}`),
       ])
       if (i.intake) setIntake(i.intake)
       setMeasurements(m.measurements)
       setCheckIns(c.checkIns)
+      setRecords(r.records)
       const today = format(new Date(), 'yyyy-MM-dd')
       const h = await api(`/api/habits?${query}&from=${today}&to=${today}`)
       if (h.habits?.[0]) setTodayHabit(h.habits[0])
@@ -122,6 +128,12 @@ export default function ProgressTab({ owner, query }: { owner: boolean; query: s
           <button className="btn-primary w-full mt-3 text-sm" disabled={busy} onClick={() => action(async () => { await api(`/api/habits?${query}`, 'PUT', todayHabit) })}>Salvează</button>
         </div>
       )}
+
+      <div className="card p-5 progress-records">
+        <div className="flex items-center justify-between mb-4"><div><p className="page-kicker">FORȚĂ ȘI REPETĂRI</p><h2 className="font-semibold mt-1">Progres exerciții</h2></div><button onClick={() => setRecordOpen(value => !value)} className="btn-primary flex items-center gap-1.5"><Plus size={14}/>Adaugă record</button></div>
+        {recordOpen && <form className="grid md:grid-cols-4 gap-2 mb-5 p-4 bg-[#f7faf9] rounded" onSubmit={e => { e.preventDefault(); void action(async () => { await api(`/api/progress-records?${query}`, 'POST', { exerciseName: recordForm.exerciseName, date: recordForm.date, weight: recordForm.weight ? Number(recordForm.weight) : null, reps: recordForm.reps ? Number(recordForm.reps) : null, notes: recordForm.notes }); const response = await api(`/api/progress-records?${query}`); setRecords(response.records); setRecordOpen(false) }) }}><input className="field md:col-span-2" placeholder="Nume exercițiu" value={recordForm.exerciseName} onChange={e => setRecordForm({ ...recordForm, exerciseName: e.target.value })}/><input type="date" className="field" value={recordForm.date} onChange={e => setRecordForm({ ...recordForm, date: e.target.value })}/><input type="number" step="0.5" className="field" placeholder="Greutate (kg)" value={recordForm.weight} onChange={e => setRecordForm({ ...recordForm, weight: e.target.value })}/><input type="number" className="field" placeholder="Repetări" value={recordForm.reps} onChange={e => setRecordForm({ ...recordForm, reps: e.target.value })}/><input className="field md:col-span-2" placeholder="Observații" value={recordForm.notes} onChange={e => setRecordForm({ ...recordForm, notes: e.target.value })}/><button className="btn-primary" disabled={busy}>Salvează record</button></form>}
+        {records.length >= 2 ? (() => { const visible = records.filter(record => record.exerciseName === records[records.length - 1].exerciseName && record.weight != null); const values = visible.map(record => record.weight as number); const min = Math.min(...values), max = Math.max(...values), span = max - min || 1, w = 620, h = 190, pad = 18; const points = visible.map((record, index) => `${pad + index / Math.max(visible.length - 1, 1) * (w - 2 * pad)},${pad + (1 - ((record.weight as number) - min) / span) * (h - 2 * pad)}`).join(' '); return <div><div className="flex items-baseline gap-2 mb-3"><p className="text-sm font-medium">{visible[0]?.exerciseName}</p><span className="text-xl font-semibold ml-auto">{values[values.length - 1]} kg</span></div><svg width="100%" height="200" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">{[0,1,2,3].map(i => <line key={i} x1="0" x2={w} y1={20+i*48} y2={20+i*48} stroke="#e9efed" strokeDasharray="5 8"/>)}<polyline points={points} fill="none" stroke="var(--accent)" strokeWidth="2.5" vectorEffect="non-scaling-stroke"/></svg></div> })() : <p className="text-sm text-gray-400 py-10 text-center">Adaugă cel puțin două recorduri pentru a vedea graficul.</p>}
+      </div>
 
       <div className="card p-5 progress-measurements">
         <div className="flex items-center justify-between mb-2">

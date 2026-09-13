@@ -1,0 +1,24 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import { Pin, Plus, Search, Trash2 } from 'lucide-react'
+
+type Note = { id: string; title: string; content: string; pinned: boolean; createdAt: string; updatedAt: string }
+export default function NotesPanel({ owner, query }: { owner: boolean; query: string }) {
+  const [notes, setNotes] = useState<Note[]>([])
+  const [selected, setSelected] = useState<Note | null>(null)
+  const [search, setSearch] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({ title: '', content: '', pinned: false })
+  const [error, setError] = useState('')
+  async function load() { const res = await fetch(`/api/notes?${query}`, { cache: 'no-store' }); const body = await res.json(); if (!res.ok) throw new Error(body.error); setNotes(body.notes); setSelected(current => current ? body.notes.find((n: Note) => n.id === current.id) ?? body.notes[0] ?? null : body.notes[0] ?? null) }
+  useEffect(() => { load().catch(e => setError(e.message)) }, [query])
+  const filtered = useMemo(() => notes.filter(note => `${note.title} ${note.content}`.toLowerCase().includes(search.toLowerCase())), [notes, search])
+  function start(note?: Note) { setEditing(true); setSelected(note ?? null); setForm(note ? { title: note.title, content: note.content, pinned: note.pinned } : { title: '', content: '', pinned: false }) }
+  async function save() { const payload = selected ? { action: 'update', id: selected.id, ...form } : { action: 'create', ...form }; const res = await fetch(`/api/notes?${query}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); const body = await res.json(); if (!res.ok) { setError(body.error); return } setEditing(false); await load() }
+  async function remove() { if (!selected || !confirm('Ștergi această notă?')) return; await fetch(`/api/notes?${query}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id: selected.id }) }); setSelected(null); setEditing(false); await load() }
+  return <div className="card overflow-hidden min-h-[590px] grid md:grid-cols-[310px_1fr]">
+    <aside className="border-r border-gray-100 p-4"><div className="flex items-center justify-between mb-4"><h2 className="font-semibold">Note client</h2>{owner && <button onClick={() => start()} className="btn-primary px-3 py-2 flex items-center gap-1"><Plus size={14}/>Notă</button>}</div><div className="relative"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="field pl-9" placeholder="Caută în note" value={search} onChange={e => setSearch(e.target.value)}/></div><div className="mt-4 divide-y divide-gray-100">{filtered.map(note => <button key={note.id} onClick={() => { setSelected(note); setEditing(false) }} className={`w-full text-left py-3 ${selected?.id === note.id ? 'text-[#147d75]' : ''}`}><div className="flex items-center gap-1"><p className="text-sm font-medium truncate flex-1">{note.title}</p>{note.pinned && <Pin size={12}/>}</div><p className="text-xs text-gray-400 mt-1">{new Date(note.updatedAt).toLocaleDateString('ro-RO')}</p></button>)}</div></aside>
+    <main className="p-6">{error && <p className="text-sm text-red-600 mb-3">{error}</p>}{editing ? <div className="space-y-4"><input className="text-xl font-semibold w-full outline-none border-b border-gray-200 pb-2" placeholder="Titlul notei" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}/><textarea className="field min-h-[330px] leading-6" placeholder="Scrie observații, instrucțiuni sau context despre client…" value={form.content} onChange={e => setForm({ ...form, content: e.target.value })}/><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.pinned} onChange={e => setForm({ ...form, pinned: e.target.checked })}/>Fixează nota în partea de sus</label><div className="flex gap-2"><button onClick={save} disabled={!form.title || !form.content} className="btn-primary">Salvează</button><button onClick={() => setEditing(false)} className="btn-secondary">Renunță</button>{selected && <button onClick={remove} className="ml-auto text-red-500 flex items-center gap-1 text-sm"><Trash2 size={15}/>Șterge</button>}</div></div> : selected ? <article><div className="flex items-start justify-between"><div><h2 className="text-xl font-semibold">{selected.title}</h2><p className="text-xs text-gray-400 mt-1">Actualizată {new Date(selected.updatedAt).toLocaleDateString('ro-RO')}</p></div>{owner && <button onClick={() => start(selected)} className="btn-secondary">Editează</button>}</div><p className="mt-8 text-sm leading-7 whitespace-pre-wrap text-gray-700">{selected.content}</p></article> : <div className="h-full grid place-items-center text-sm text-gray-400">Nicio notă încă.</div>}</main>
+  </div>
+}

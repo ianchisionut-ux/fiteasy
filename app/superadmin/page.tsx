@@ -1,58 +1,27 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Shield, Users } from 'lucide-react'
+import { Pencil, Plus, Shield, Users, X } from 'lucide-react'
 
 type Instructor = { id: string; name: string; email: string; active: boolean; isSuperAdmin: boolean; createdAt: string; _count: { clients: number } }
-
 export default function SuperadminPage() {
   const [instructors, setInstructors] = useState<Instructor[]>([])
+  const [drawer, setDrawer] = useState(false)
+  const [editing, setEditing] = useState<Instructor | null>(null)
+  const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
-
-  useEffect(() => {
-    fetch('/api/superadmin/instructors').then(r => r.json()).then(d => {
-      if (d.error) setError(d.error); else setInstructors(d.instructors)
-    })
-  }, [])
-
-  async function toggle(instructorId: string, active: boolean) {
-    setBusy(instructorId); setError('')
-    const res = await fetch('/api/superadmin/instructors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instructorId, active }) })
-    const data = await res.json().catch(() => null)
-    setBusy('')
-    if (!res.ok) { setError(data?.error || 'Acțiune eșuată.'); return }
-    setInstructors(list => list.map(i => i.id === instructorId ? { ...i, active } : i))
-  }
-
-  const activeCount = instructors.filter(i => i.active).length
-
-  return (
-    <div className="space-y-4">
-      <h1 className="text-lg font-semibold">Instructori</h1>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="card p-4"><p className="text-xs text-gray-500">Total instructori</p><p className="text-xl font-semibold mt-1">{instructors.length}</p></div>
-        <div className="card p-4"><p className="text-xs text-gray-500">Conturi active</p><p className="text-xl font-semibold mt-1">{activeCount}</p></div>
-      </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="card divide-y divide-gray-100">
-        {instructors.map(i => (
-          <div key={i.id} className="p-3 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0" style={{ background: 'var(--accent)' }}>
-              {i.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate flex items-center gap-1.5">{i.name}{i.isSuperAdmin && <Shield size={12} style={{ color: 'var(--accent)' }} />}</p>
-              <p className="text-xs text-gray-500 truncate">{i.email} · <Users size={11} className="inline" /> {i._count.clients} clienți</p>
-            </div>
-            {!i.isSuperAdmin && (
-              <button disabled={busy === i.id} onClick={() => toggle(i.id, !i.active)} className="text-xs px-3 py-1.5 rounded-full flex-shrink-0" style={i.active ? { border: '1px solid #FCA5A5', color: '#DC2626' } : { background: 'var(--accent)', color: 'white' }}>
-                {i.active ? 'Dezactivează' : 'Activează'}
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+  async function load() { const res = await fetch('/api/superadmin/instructors', { cache: 'no-store' }); const body = await res.json(); if (!res.ok) throw new Error(body.error); setInstructors(body.instructors) }
+  useEffect(() => { load().catch(e => setError(e.message)) }, [])
+  function open(instructor?: Instructor) { setEditing(instructor ?? null); setForm(instructor ? { name: instructor.name, email: instructor.email, password: '' } : { name: '', email: '', password: '' }); setDrawer(true); setError('') }
+  async function save() { setBusy('save'); const payload = editing ? { action: 'update', instructorId: editing.id, name: form.name, email: form.email, ...(form.password ? { password: form.password } : {}) } : { action: 'create', ...form }; const res = await fetch('/api/superadmin/instructors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); const body = await res.json(); setBusy(''); if (!res.ok) { setError(body.error || 'Salvarea a eșuat.'); return } setDrawer(false); await load() }
+  async function toggle(instructor: Instructor) { setBusy(instructor.id); const res = await fetch('/api/superadmin/instructors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'toggle', instructorId: instructor.id, active: !instructor.active }) }); const body = await res.json(); setBusy(''); if (!res.ok) { setError(body.error); return } await load() }
+  const active = instructors.filter(item => item.active).length
+  const clients = instructors.reduce((sum, item) => sum + item._count.clients, 0)
+  return <div className="space-y-6"><div className="flex items-end justify-between"><div><p className="page-kicker">ADMINISTRARE PLATFORMĂ</p><h1 className="text-2xl font-semibold mt-1">Superadmin</h1><p className="text-sm text-gray-500 mt-1">Gestionează administratorii FitEasy și clienții lor.</p></div><button onClick={() => open()} className="btn-primary flex items-center gap-2"><Plus size={16}/>Administrator nou</button></div>
+    <div className="grid md:grid-cols-3 gap-4"><Stat label="Administratori" value={instructors.length}/><Stat label="Conturi active" value={active}/><Stat label="Clienți gestionați" value={clients}/></div>{error && <p className="text-sm text-red-600">{error}</p>}
+    <div className="card overflow-hidden"><div className="grid grid-cols-[1.2fr_1.2fr_100px_110px_100px] gap-3 px-5 py-3 text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-100"><span>Administrator</span><span>Email</span><span>Clienți</span><span>Status</span><span>Acțiuni</span></div>{instructors.map(instructor => <div key={instructor.id} className="grid grid-cols-[1.2fr_1.2fr_100px_110px_100px] gap-3 items-center px-5 py-4 border-b border-gray-100 last:border-0"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-[#dff7f3] text-[#147d75] grid place-items-center text-xs font-semibold">{instructor.name.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}</div><div><p className="text-sm font-medium flex items-center gap-1">{instructor.name}{instructor.isSuperAdmin && <Shield size={12}/>}</p><p className="text-xs text-gray-400">din {new Date(instructor.createdAt).toLocaleDateString('ro-RO')}</p></div></div><span className="text-sm truncate">{instructor.email}</span><span className="text-sm flex items-center gap-1"><Users size={14} className="text-gray-400"/>{instructor._count.clients}</span><button disabled={instructor.isSuperAdmin || busy === instructor.id} onClick={() => toggle(instructor)} className={`status-pill ${instructor.active ? 'status-pill-active' : ''}`}>{instructor.active ? 'Activ' : 'Inactiv'}</button><button onClick={() => open(instructor)} className="btn-secondary px-3 py-2 flex items-center gap-1"><Pencil size={13}/>Editează</button></div>)}</div>
+    {drawer && <><button className="drawer-backdrop" onClick={() => setDrawer(false)} aria-label="Închide"/><aside className="plan-drawer"><div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-5"><div><p className="page-kicker">CONT ADMINISTRATOR</p><h2 className="text-xl font-semibold mt-1">{editing ? 'Editează administrator' : 'Administrator nou'}</h2></div><button onClick={() => setDrawer(false)} className="w-9 h-9 rounded-full border border-gray-200 grid place-items-center"><X size={16}/></button></div><div className="space-y-4"><label className="block text-sm">Nume<input className="field mt-1" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}/></label><label className="block text-sm">Email<input type="email" className="field mt-1" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}/></label><label className="block text-sm">{editing ? 'Parolă nouă (opțional)' : 'Parolă temporară'}<input type="password" className="field mt-1" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}/><span className="text-xs text-gray-400 mt-1 block">Minimum 8 caractere.</span></label></div><div className="drawer-actions"><button className="btn-secondary" onClick={() => setDrawer(false)}>Renunță</button><button className="btn-primary" onClick={save} disabled={busy === 'save' || !form.name || !form.email || (!editing && form.password.length < 8)}>{busy === 'save' ? 'Se salvează…' : 'Salvează administratorul'}</button></div></aside></>}
+  </div>
 }
+function Stat({ label, value }: { label: string; value: number }) { return <div className="card p-5"><p className="text-sm text-gray-400">{label}</p><p className="text-3xl font-semibold mt-2">{value}</p></div> }

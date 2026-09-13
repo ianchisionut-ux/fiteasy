@@ -4,62 +4,44 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import {
-  Apple, BarChart3, Building2, CalendarDays, Dumbbell, Home,
-  LogOut, MessageSquare, Settings, ShieldCheck, Users, UsersRound,
-} from 'lucide-react'
+import { useState } from 'react'
+import { BarChart3, BellRing, ChevronLeft, ChevronRight, Dumbbell, LogOut, MessageSquare, ShieldCheck, Users } from 'lucide-react'
+
+const BASE_ITEMS = [
+  { href: '/dashboard?view=stats', match: '/dashboard:stats', label: 'Panou general', icon: BarChart3 },
+  { href: '/dashboard', match: '/dashboard:clients', label: 'Clienți', icon: Users },
+  { href: '/dashboard/programs', match: '/dashboard/programs', label: 'Programe', icon: Dumbbell },
+  { href: '/dashboard/reminders', match: '/dashboard/reminders', label: 'Remindere', icon: BellRing },
+  { href: '/dashboard/messages', match: '/dashboard/messages', label: 'Mesaje', icon: MessageSquare },
+]
 
 export default function SidebarNav({ isSuperAdmin }: { isSuperAdmin: boolean }) {
+  const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const view = searchParams.get('view')
-  const client = searchParams.get('client')
-  const tab = searchParams.get('tab') ?? 'WORKOUT'
-  const onDashboard = pathname === '/dashboard'
-  const clientHref = (nextTab: string) => client
-    ? `/dashboard?client=${encodeURIComponent(client)}${nextTab === 'WORKOUT' ? '' : `&tab=${nextTab}`}`
-    : '/dashboard'
-
-  const secondaryItem = (active: boolean) =>
-    `sidebar-secondary-item ${active ? 'sidebar-secondary-item-active' : ''}`
+  const active = pathname === '/dashboard'
+    ? (searchParams.get('view') === 'stats' ? '/dashboard:stats' : '/dashboard:clients')
+    : pathname
+  const items = isSuperAdmin ? [...BASE_ITEMS, { href: '/superadmin', match: '/superadmin', label: 'Superadmin', icon: ShieldCheck }] : BASE_ITEMS
 
   return (
-    <aside className="hidden lg:flex lg:flex-shrink-0 bg-white border-r border-[#e8eeee] min-h-[calc(100vh-3rem)]">
-      <div className="sidebar-rail">
-        <Link href="/dashboard?view=stats" className="sidebar-mark" aria-label="FitEasy">
-          <Image src="/fiteasy-logo.png" alt="fiteasy.ro" width={209} height={98} className="w-10 h-10 object-contain" priority />
+    <aside className={`hidden lg:flex flex-col flex-shrink-0 bg-white border-r border-[#e8eeee] min-h-[calc(100vh-2rem)] transition-[width] duration-200 ${collapsed ? 'w-[76px]' : 'w-[232px]'}`}>
+      <div className={`h-[76px] flex items-center border-b border-[#edf1f0] ${collapsed ? 'justify-center' : 'px-5 justify-between'}`}>
+        <Link href="/dashboard?view=stats" className="flex items-center gap-2 overflow-hidden">
+          <Image src="/fiteasy-logo.png" alt="FitEasy" width={209} height={98} className="w-10 h-10 object-contain shrink-0" priority />
+          {!collapsed && <span className="font-semibold tracking-[.12em] text-xs whitespace-nowrap">FITEASY COACH</span>}
         </Link>
-        <nav className="flex-1 flex flex-col items-center gap-2 mt-6">
-          <Link title="Acasă" href="/dashboard?view=stats" className={`rail-button ${onDashboard && view === 'stats' ? 'rail-button-active' : ''}`}><Home size={20} /></Link>
-          <Link title="Clienți" href="/dashboard" className={`rail-button ${onDashboard && view !== 'stats' ? 'rail-button-active' : ''}`}><UsersRound size={20} /></Link>
-          <Link title="Programe" href={clientHref('WORKOUT')} className={`rail-button ${client && tab === 'WORKOUT' ? 'rail-button-active' : ''}`}><Dumbbell size={20} /></Link>
-          <Link title="Nutriție" href={clientHref('NUTRITION')} className={`rail-button ${client && tab === 'NUTRITION' ? 'rail-button-active' : ''}`}><Apple size={20} /></Link>
-          <Link title="Mesaje" href={clientHref('MESSAGES')} className={`rail-button ${client && tab === 'MESSAGES' ? 'rail-button-active' : ''}`}><MessageSquare size={20} /></Link>
-          {isSuperAdmin && <Link title="Administrare" href="/superadmin" className={`rail-button ${pathname === '/superadmin' ? 'rail-button-active' : ''}`}><Building2 size={20} /></Link>}
-        </nav>
-        <button title="Deconectare" onClick={() => signOut({ callbackUrl: '/login' })} className="rail-button"><LogOut size={19} /></button>
       </div>
-
-      <div className="sidebar-panel">
-        <div className="mb-8">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-gray-400 font-semibold">FitEasy Coach</p>
-          <h2 className="text-lg font-semibold mt-1">Spațiu de lucru</h2>
-        </div>
-        <nav className="space-y-1">
-          <Link href="/dashboard?view=stats" className={secondaryItem(onDashboard && view === 'stats')}><Home size={17} />Panou general</Link>
-          <Link href="/dashboard" className={secondaryItem(onDashboard && !client && view !== 'stats')}><Users size={17} />Toți clienții</Link>
-          <Link href={clientHref('WORKOUT')} className={secondaryItem(Boolean(client) && tab === 'WORKOUT')}><CalendarDays size={17} />Calendar & plan</Link>
-          <Link href={clientHref('NUTRITION')} className={secondaryItem(Boolean(client) && tab === 'NUTRITION')}><Apple size={17} />Nutriție</Link>
-          <Link href={clientHref('PROGRES')} className={secondaryItem(Boolean(client) && tab === 'PROGRES')}><BarChart3 size={17} />Progres</Link>
-          <Link href={clientHref('MESSAGES')} className={secondaryItem(Boolean(client) && tab === 'MESSAGES')}><MessageSquare size={17} />Mesaje și note</Link>
-          {isSuperAdmin && <Link href="/superadmin" className={secondaryItem(pathname === '/superadmin')}><ShieldCheck size={17} />Administrare</Link>}
-        </nav>
-        <div className="mt-auto pt-6 border-t border-[#edf1f0]">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-9 h-9 rounded-full bg-[#d9f5ef] text-[#158e80] flex items-center justify-center"><Settings size={17} /></div>
-            <div><p className="text-sm font-medium">Setări</p><p className="text-[11px] text-gray-400">Cont instructor</p></div>
-          </div>
-        </div>
+      <button onClick={() => setCollapsed(v => !v)} className="w-8 h-8 rounded border border-gray-200 bg-white self-end -mr-4 mt-5 z-10 grid place-items-center text-gray-500 shadow-sm" aria-label={collapsed ? 'Extinde meniul' : 'Restrânge meniul'}>{collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}</button>
+      <nav className="flex-1 px-3 pt-4 space-y-1">
+        {items.map(item => {
+          const Icon = item.icon
+          const selected = item.match === '/superadmin' ? pathname.startsWith('/superadmin') : active === item.match
+          return <Link key={item.match} href={item.href} title={collapsed ? item.label : undefined} className={`single-nav-item ${selected ? 'single-nav-item-active' : ''} ${collapsed ? 'justify-center px-0' : ''}`}><Icon size={18} className="shrink-0" />{!collapsed && <span>{item.label}</span>}</Link>
+        })}
+      </nav>
+      <div className="px-3 pb-4 space-y-1 border-t border-[#edf1f0] pt-3">
+        <button onClick={() => signOut({ callbackUrl: '/login' })} className={`single-nav-item w-full ${collapsed ? 'justify-center px-0' : ''}`}><LogOut size={18} />{!collapsed && <span>Deconectare</span>}</button>
       </div>
     </aside>
   )

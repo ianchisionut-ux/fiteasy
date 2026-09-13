@@ -10,6 +10,10 @@ import { MUSCLE_GROUPS, EXERCISES } from '@/lib/exercises'
 import ProgressTab from './progress-tab'
 import TemplatePicker from './template-picker'
 import MonthOverview from './month-overview'
+import NotesPanel from './notes-panel'
+import ClientOverview from './client-overview'
+import NutritionGoalDrawer from './nutrition-goal-drawer'
+import AssignedPrograms from './assigned-programs'
 
 type Entry = { id: string; kind: string; date: string; time: string; title: string; details: string; muscleGroup: string | null; protein: number | null; carbs: number | null; fat: number | null; calories: number | null; completed: boolean; feedback: string; coachNote: string; version: number }
 type Message = { id: string; text: string; sender: string; createdAt: string }
@@ -56,8 +60,8 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
   const setClientId = (id: string) => updateUrl({ client: id || null })
   const view = (searchParams.get('view') as 'clients' | 'stats') ?? 'clients'
   const setView = (v: 'clients' | 'stats') => updateUrl({ view: v === 'clients' ? null : v })
-  const tab = searchParams.get('tab') ?? 'WORKOUT'
-  const setTab = (t: string) => updateUrl({ tab: t === 'WORKOUT' ? null : t })
+  const tab = searchParams.get('tab') ?? (owner && clientId ? 'CLIENT_HOME' : 'WORKOUT')
+  const setTab = (t: string) => updateUrl({ tab: t === (owner ? 'CLIENT_HOME' : 'WORKOUT') ? null : t })
 
   const [clients, setClients] = useState<ClientOption[]>([])
   const [clientName, setClientName] = useState('')
@@ -74,6 +78,7 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
   const [progress, setProgress] = useState<Entry | null>(null)
   const [newClientOpen, setNewClientOpen] = useState(false)
   const [newClient, setNewClient] = useState({ name: '', phone: '' })
+  const [editingClientId, setEditingClientId] = useState<string | null>(null)
   const [invite, setInvite] = useState('')
   const [editingTargets, setEditingTargets] = useState(false)
   const [savingTemplate, setSavingTemplate] = useState(false)
@@ -93,6 +98,10 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
     if (!owner) return
     api('/api/clients').then(d => setClients(d.clients)).catch(e => setError(e.message))
   }, [owner])
+
+  useEffect(() => {
+    if (owner && searchParams.get('new') === '1') setNewClientOpen(true)
+  }, [owner, searchParams])
 
   useEffect(() => {
     if (owner && !clientId) { setEntries([]); setMessages([]); return }
@@ -144,13 +153,15 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
           {error && <p className="text-sm text-red-600">{error}</p>}
           {newClientOpen && <form className="card p-4 space-y-3" onSubmit={e => {
             e.preventDefault(); void action(async () => {
-              const d = await api('/api/clients', 'POST', { action: 'create', ...newClient })
-              setClients(c => [...c, d.client]); setNewClientOpen(false); setNewClient({ name: '', phone: '' })
+              const current = clients.find(c => c.id === editingClientId)
+              const d = await api('/api/clients', 'POST', editingClientId ? { action: 'update', clientId: editingClientId, ...newClient, active: current?.active ?? true } : { action: 'create', ...newClient })
+              setClients(c => editingClientId ? c.map(item => item.id === editingClientId ? { ...item, ...d.client } : item) : [...c, d.client]); setNewClientOpen(false); setEditingClientId(null); setNewClient({ name: '', phone: '' })
             })
           }}>
+            <p className="font-semibold text-sm">{editingClientId ? 'Editează clientul' : 'Client nou'}</p>
             <label className="block text-sm">Nume<input required className="field mt-1" value={newClient.name} onChange={e => setNewClient({ ...newClient, name: e.target.value })} placeholder="Andreea Popescu" /></label>
             <label className="block text-sm">Telefon (opțional)<input className="field mt-1" value={newClient.phone} onChange={e => setNewClient({ ...newClient, phone: e.target.value })} placeholder="07xx xxx xxx" /></label>
-            <div className="flex gap-2"><button className="btn-primary" disabled={busy}>Salvează</button><button type="button" className="btn-secondary" onClick={() => setNewClientOpen(false)}>Renunță</button></div>
+            <div className="flex gap-2"><button className="btn-primary" disabled={busy}>Salvează</button><button type="button" className="btn-secondary" onClick={() => { setNewClientOpen(false); setEditingClientId(null); setNewClient({ name: '', phone: '' }) }}>Renunță</button></div>
           </form>}
           <div className="card divide-y divide-gray-100">
             {clients.length === 0 && <div className="p-4 text-sm text-gray-500 space-y-3">
@@ -170,6 +181,8 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
                 </button>
                 <button title="Antrenament rapid" onClick={() => openClient(c.id, 'WORKOUT')} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-white" style={{ color: 'var(--accent)' }}><Dumbbell size={15} /></button>
                 <button title="Nutriție rapid" onClick={() => openClient(c.id, 'NUTRITION')} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-white" style={{ color: '#3b82f6' }}><Apple size={15} /></button>
+                <button title={c.active ? 'Dezactivează clientul' : 'Activează clientul'} onClick={() => action(async () => { const d = await api('/api/clients', 'POST', { action: 'update', clientId: c.id, name: c.name, phone: c.phone ?? '', active: !c.active }); setClients(list => list.map(item => item.id === c.id ? { ...item, ...d.client } : item)) })} className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-white ${c.active ? 'text-emerald-500' : 'text-gray-300'}`}>{c.active ? <Check size={14}/> : <Circle size={14}/>}</button>
+                <button title="Editează clientul" onClick={() => { setEditingClientId(c.id); setNewClient({ name: c.name, phone: c.phone ?? '' }); setNewClientOpen(true) }} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-white text-gray-400"><Pencil size={14} /></button>
               </div>
             ))}
           </div>
@@ -190,7 +203,7 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
         <div className="flex items-end justify-between border-b border-[#e7eceb] pb-5">
           <div>
             <button onClick={() => { setClientId(''); setInvite('') }} className="page-kicker hover:underline">← ÎNAPOI LA CLIENȚI</button>
-            <h1 className="text-2xl font-semibold mt-2">{tab === 'PROGRES' ? 'Progres' : tab === 'MESSAGES' ? 'Mesaje și note' : tab === 'NUTRITION' ? 'Calendar nutriție' : 'Calendar client'}</h1>
+            <h1 className="text-2xl font-semibold mt-2">{tab === 'CLIENT_HOME' ? 'Dashboard client' : tab === 'PROGRAM' ? 'Program de antrenament' : tab === 'PROGRES' ? 'Progres' : tab === 'NOTES' ? 'Note' : tab === 'MESSAGES' ? 'Mesaje' : tab === 'NUTRITION' ? 'Calendar nutriție' : 'Calendar client'}</h1>
             <p className="text-sm text-gray-500 mt-1">{clientName}</p>
           </div>
           <button className="btn-secondary text-xs" disabled={busy} onClick={() => action(async () => {
@@ -205,15 +218,19 @@ export default function Workspace({ owner = false, instructorName = '' }: { owne
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <nav className="section-tabs flex flex-wrap">
-        {[['WORKOUT', 'Antrenamente'], ['NUTRITION', 'Nutriție'], ['PROGRES', 'Progres'], ['MESSAGES', 'Mesaje']].map(([key, label]) => (
+        {([...(owner ? [['CLIENT_HOME', 'Dashboard']] : []), ['PROGRAM', 'Program'], ['WORKOUT', 'Calendar'], ['NUTRITION', 'Nutriție'], ['PROGRES', 'Progres'], ['NOTES', 'Note'], ['MESSAGES', 'Mesaje']] as string[][]).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)} className={`section-tab ${tab === key ? 'section-tab-active' : ''}`}>{label}</button>
         ))}
       </nav>
 
+      {tab === 'CLIENT_HOME' && <ClientOverview entries={entries} clientName={clientName} query={query} onOpen={setTab} />}
+      {tab === 'PROGRAM' && <AssignedPrograms query={query} />}
       {tab === 'PROGRES' && <ProgressTab owner={owner} query={query} />}
+      {tab === 'NOTES' && <NotesPanel owner={owner} query={query} />}
 
       {(tab === 'WORKOUT' || tab === 'NUTRITION') && <>
         <div className="flex items-center justify-end gap-2 flex-wrap">
+          {owner && tab === 'NUTRITION' && <NutritionGoalDrawer query={query} />}
           {owner && <TemplatePicker kind={tab as 'WORKOUT' | 'NUTRITION'} query={query} onApplied={() => { void (async () => { const data = await api(`/api/entries?${query}&from=${from}&to=${to}`); setEntries(data.entries) })() }} />}
           {owner && <button className="btn-primary flex items-center gap-1.5 text-sm" onClick={() => { setEditing(null); setPlan({ ...emptyPlan, kind: tab, date: selectedDate }); setEditorOpen(true) }}><Plus size={15} />{tab === 'NUTRITION' ? 'Adaugă masă' : 'Adaugă antrenament'}</button>}
         </div>

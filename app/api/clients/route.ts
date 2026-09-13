@@ -18,6 +18,7 @@ export async function GET() {
 }
 
 const createInput = z.object({ action: z.literal('create'), name: z.string().trim().min(1).max(150), phone: z.string().trim().max(30).optional() }).strict()
+const updateInput = z.object({ action: z.literal('update'), clientId: z.string().min(1), name: z.string().trim().min(1).max(150), phone: z.string().trim().max(30).optional(), active: z.boolean() }).strict()
 const inviteInput = z.object({ action: z.enum(['invite', 'revoke']), clientId: z.string().min(1) }).strict()
 const targetsAction = z.object({ action: z.literal('targets'), clientId: z.string().min(1) }).and(nutritionTargetsInput)
 
@@ -30,6 +31,15 @@ export async function POST(req: Request) {
       const { name, phone } = await input(req, createInput)
       const client = await prisma.client.create({ data: { instructorId, name, phone } })
       return json({ client }, 201)
+    }
+
+    if (body.action === 'update') {
+      const values = await input(req, updateInput)
+      const existing = await prisma.client.findFirst({ where: { id: values.clientId, instructorId } })
+      if (!existing) return json({ error: 'Client inexistent.' }, 404)
+      const client = await prisma.client.update({ where: { id: existing.id }, data: { name: values.name, phone: values.phone, active: values.active } })
+      if (!values.active) await prisma.clientSession.deleteMany({ where: { clientId: existing.id } })
+      return json({ client })
     }
 
     if (body.action === 'targets') {

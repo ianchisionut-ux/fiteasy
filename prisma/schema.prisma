@@ -20,6 +20,8 @@ model Instructor {
   createdAt     DateTime @default(now())
   clients       Client[]
   templates     Template[]
+  programs      Program[]
+  announcements Announcement[]
 }
 
 model Client {
@@ -39,6 +41,11 @@ model Client {
   habitLogs       HabitLog[]
   checkIns        CheckIn[]
   intake          Intake?
+  programs        Program[]
+  reminders       Reminder[]
+  notes           ClientNote[]
+  progressRecords ProgressRecord[]
+  nutritionGoals  NutritionGoal[]
 
   // Ținte zilnice de nutriție (grame / kcal), setate de instructor.
   dailyProteinTarget  Int?
@@ -164,4 +171,101 @@ model Message {
   createdAt DateTime @default(now())
 
   @@index([clientId, createdAt])
+}
+
+// Program reutilizabil sau atribuit unui client. Structura builder-ului (săptămâni,
+// zile, exerciții și serii) este păstrată în JSON pentru editare rapidă și versionare.
+model Program {
+  id           String     @id @default(cuid())
+  instructorId String
+  instructor   Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  clientId     String?
+  client       Client?    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name         String
+  description  String     @default("")
+  kind         String     @default("WORKOUT")
+  status       String     @default("DRAFT")
+  data         Json
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([instructorId, kind])
+  @@index([clientId])
+}
+
+model Reminder {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  details   String   @default("")
+  time      String   @default("09:00")
+  days      String   @default("")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([clientId, active])
+}
+
+model ClientNote {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, updatedAt])
+}
+
+model ProgressRecord {
+  id           String   @id @default(cuid())
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  exerciseName String
+  date         String
+  weight       Float?
+  reps         Int?
+  source       String   @default("MANUAL")
+  notes        String   @default("")
+  createdAt    DateTime @default(now())
+
+  @@index([clientId, exerciseName, date])
+}
+
+model NutritionGoal {
+  id             String   @id @default(cuid())
+  clientId       String
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  startDate      String
+  calories       Int
+  proteinPercent Int      @default(30)
+  fatPercent     Int      @default(30)
+  carbsPercent   Int      @default(40)
+  saturatedFat   Int?
+  cholesterol    Int?
+  fibers         Int?
+  sugars         Int?
+  sodium         Int?
+  days           String   @default("1,2,3,4,5,6,0")
+  repeatWeeks    Int      @default(1)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@index([clientId, active])
+}
+
+model Announcement {
+  id           String     @id @default(cuid())
+  instructorId String
+  instructor   Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  title        String
+  content      String
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+
+  @@index([instructorId, active])
 }
