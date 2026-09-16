@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { neon } from '@neondatabase/serverless'
 import { prisma } from '@/lib/prisma'
 import { failure, hashToken, input, requireInstructor, json, newToken } from '@/lib/client-auth'
 import { nutritionTargetsInput } from '@/lib/validation'
@@ -55,10 +56,11 @@ export async function POST(req: Request) {
     if (!client) return json({ error: 'Client inexistent.' }, 404)
 
     if (action === 'revoke') {
-      await prisma.$transaction(async tx => {
-        await tx.client.update({ where: { id: client.id }, data: { active: false, inviteHash: null, inviteExpiresAt: null } })
-        await tx.clientSession.deleteMany({ where: { clientId: client.id } })
-      })
+      const sql = neon(process.env.DATABASE_URL ?? '')
+      await sql.transaction([
+        sql`UPDATE "Client" SET "active" = false, "inviteHash" = NULL, "inviteExpiresAt" = NULL WHERE "id" = ${client.id}`,
+        sql`DELETE FROM "ClientSession" WHERE "clientId" = ${client.id}`,
+      ])
       return json({ ok: true })
     }
 
