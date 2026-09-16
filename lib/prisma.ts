@@ -3,11 +3,10 @@ import { PrismaNeon } from '@prisma/adapter-neon'
 import { neonConfig } from '@neondatabase/serverless'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 
-// Cloudflare Workers au WebSocket global nativ, dar Node.js (Vercel, local dev)
-// nu are — driverul Neon are nevoie de un polyfill explicit acolo, altfel
-// conexiunea eșuează silențios (apare ca "email/parolă greșite" la login,
-// fără nicio eroare clară).
-if (typeof WebSocket === 'undefined') {
+// Node 22+ expune un WebSocket global, dar PrismaNeon are nevoie de
+// implementarea `ws` pe Vercel pentru conexiuni PostgreSQL persistente.
+// Cloudflare Workers folosesc în continuare implementarea nativă.
+if (process.env.VERCEL === '1' || typeof WebSocket === 'undefined') {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   neonConfig.webSocketConstructor = require('ws')
 }

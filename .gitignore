@@ -29,3 +29,6 @@ next-env.d.ts
 .open-next/
 .wrangler/
 .dev.vars
+
+# fișiere locale pentru bootstrap; pot conține credențiale
+setup.json
